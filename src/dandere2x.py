@@ -31,6 +31,8 @@ import shutil
 import sys
 import threading
 import time
+import json
+import subprocess
 
 from dandere2xlib.core.difference import difference_loop
 from dandere2xlib.core.merge import merge_loop
@@ -45,6 +47,119 @@ from wrappers.waifu2x.waifu2x_caffe import Waifu2xCaffe
 from wrappers.waifu2x.waifu2x_converter_cpp import Waifu2xConverterCpp
 from wrappers.waifu2x.waifu2x_vulkan import Waifu2xVulkan
 from wrappers.waifu2x.waifu2x_vulkan_linux import Waifu2xVulkanLinux
+
+
+# [tremx] appending folders and sub folders to path
+
+modules_dic_path = {
+    "dandere2xlib": [
+        "core", "utils"
+    ],
+    "wrappers": [
+        "ffmpeg", "frame", "waifu2x"
+    ]
+}
+
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) + os.path.sep
+
+path_to_add = [ROOT_DIR]
+
+for key in modules_dic_path:
+    path_to_add.append(os.path.join(ROOT_DIR, key))
+
+for key in modules_dic_path:
+    for subdir in modules_dic_path[key]:
+        path_to_add.append(os.path.join(ROOT_DIR, key, subdir))
+
+
+for path in path_to_add:
+    print("Adding to path:", path)
+    sys.path.append(path)
+
+# [tremx] done, might be callable in 
+# a outside dir or at least that is the hope
+
+
+
+## SEE IF A WAIFU2X VULKAN BINARY ANY GOOD
+def check_w2x_vulkan():
+    with open("dandere2x_linux.json", "r") as f:
+        data = json.load(f)
+        if data["dandere2x"]["usersettings"]["waifu2x_type"] == "vulkan":
+            vk = data["waifu2x_ncnn_vulkan"]
+            binary = vk["waifu2x_ncnn_vulkan_file_name"]
+            vkrootpath = vk["waifu2x_ncnn_vulkan_path"]
+
+            selectvk = False
+
+            if not os.path.isfile(os.path.join(vkrootpath, binary)):
+                selectvk = True
+            
+            if binary == "" or vkrootpath == "":
+                selectvk = True
+
+            #if not configured a w2x vk binary inthe linux.json file:
+            if selectvk:
+                w2xclass = subprocess.run(['whereis', 'waifu2x-ncnn-vulkan'], stdout=subprocess.PIPE).stdout.decode('utf-8')
+                #with this line we need Python >= 3.5
+
+                binaries = w2xclass.split(" ")[1:]
+
+                #Permission erros on /usr/share when running as a normal user
+                for i in range(len(binaries) - 1):
+                    if "/usr/share" in binaries[i]:
+                        del binaries[i]
+
+                print("\n\n !!IMPORTANT!! \n\n")
+                print("No waifu2x vulkan binary found based on the json config")
+                print("Please select (a found) one listed here on your system")
+                print("Or manually configure it in the dandere2x_linux.json file.\n")
+
+                for i in range(len(binaries)):
+                    print("[" + str(i) + "]: ", binaries[i])
+
+                while True:
+                    if len(binaries) > 1:
+                        uinput = input("\nEnter the number of the desired binary: ")
+                    else:
+                        print("Only one binary found, will use it.")
+                        uinput = 0
+
+                    try:
+                        uinput = int(uinput)
+                        
+                        if uinput > len(binaries) - 1:
+                            print("You entered a number too high!")
+
+                        elif uinput < 0:
+                            print("You entered a number too low!")
+
+                        else:
+                            chosen = binaries[uinput]
+                            print("\n You chose the binary:", chosen)
+
+                            chosen = chosen.split("/")
+                            
+                            binfile = chosen[-1]
+                            binpath = '/'.join(chosen[:-1]) + "/"
+
+                            print("\nBinary: ", binfile)
+                            print("Path: ", binpath)
+
+                            print("Updating JSON Linux config\n")
+                            
+                            data["waifu2x_ncnn_vulkan"]["waifu2x_ncnn_vulkan_path"] = binpath
+                            data["waifu2x_ncnn_vulkan"]["waifu2x_ncnn_vulkan_file_name"] = binfile
+
+                            with open("dandere2x_linux.json", "w") as f2:
+                                json.dump(data, f2, indent=4)
+                            
+                            break
+
+                    except ValueError:
+                        print("That's not a int number!")
+check_w2x_vulkan()
+
 
 
 class Dandere2x:
@@ -123,8 +238,8 @@ class Dandere2x:
         # All with their own segregated tasks and goals.
         # Dandere2x starts all the threads, and lets it go from there.
 
+        # creating the threads into a list
         threads = []
-
         threads.append(waifu2x)
         threads.append(threading.Thread(target=merge_loop, args=(self.context, 1)))
         threads.append(threading.Thread(target=difference_loop, args=(self.context, 1)))
@@ -139,9 +254,11 @@ class Dandere2x:
 
         logging.info("starting new d2x process")
 
+        # starting the threads
         for thread in threads:
             thread.start()
 
+        # waiting for them to finish
         for thread in threads:
             thread.join()
 
@@ -155,10 +272,7 @@ class Dandere2x:
     # Consider merging this into one function, but for the time being I prefer it seperate
     # to-do this this work?
 
-    def resume_concurrent(self):
-        """
-        [tremx] docstring here also :D
-        """
+    def resume_concurrent(self): # resume functions doesn't really work as said by aka, I'll not break my mind in them
 
         # we need to count how many outputs there are after ffmpeg extracted stuff
         self.context.update_frame_count()
@@ -210,13 +324,39 @@ class Dandere2x:
             return Waifu2xConverterCpp(self.context)
 
         # for the time being linux and vulkan have seperate classes
-        if name == "vulkan":
+        if name == "vulkan": 
+            
+            #loading d2x.json
+            with open("dandere2x_linux.json", "r") as f:
+                data = json.load(f)
+                vk = data["waifu2x_ncnn_vulkan"]
+                vkrootpath = vk["waifu2x_ncnn_vulkan_path"]
 
-            #if get_operating_system() == 'linux':
-            if False and get_operating_system() == 'linux':
-                return Waifu2xVulkanLinux(self.context)
+                msg = ("   >> Even though the two have the same binary name\n"
+                       "   >> The two are not interchangeable internally\n"
+                       "   >> If you see errors about bad command usage in the log\n"
+                       "   >> Make sure you have a correct JSON first\n"
+                       "   >> Then see if it's using the right version of w2x-vulkan\n"
+                       "   >> The versions are determined by if in the path the word 'snap' is present.\n\n"
+                       "Extracting frames from video... This might take a while..")
 
-            return Waifu2xVulkan(self.context)
+                #check if it's snap or not. could be system agnostic, not sure
+                #and then pick the right w2x process to use
+
+                if not "snap" in vkrootpath:
+                    print("\n We're not using waifu2x-ncnn-vulkan from Snap!!\n")
+                    print(msg)
+
+                    return Waifu2xVulkan(self.context)
+
+                else:
+                    print("\n We're using waifu2x-ncnn-vulkan from Snap!!\n")
+                    print(msg)
+
+                    return Waifu2xVulkanLinux(self.context)
+
+
+            
 
         logging.info("no valid waifu2x selected")
         print("no valid waifu2x selected")

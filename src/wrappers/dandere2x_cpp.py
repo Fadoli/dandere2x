@@ -46,8 +46,7 @@ class Dandere2xCppWrapper(threading.Thread):
     def new_run(self):
         logger = logging.getLogger(__name__)
 
-        #[tremx] exec is a python reserved name, so we're redefining
-        #something we shouldn't be doing; renaming to d2x_exec; parsing
+        # exec command on new session
         d2x_exec = [self.dandere2x_cpp_dir,
                     self.workspace,
                     str(self.frame_count),

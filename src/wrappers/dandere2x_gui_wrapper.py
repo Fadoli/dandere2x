@@ -27,17 +27,18 @@ class Dandere2x_Gui_Wrapper:
             os.mkdir(self.context.workspace)
         except OSError:
             print("Creation of directory failed")
+            exit()
 
         start = time.time()
 
         # starting shit
         print("Starting Dandere2x")
-        d = Dandere2x(self.context)
-        d.run_concurrent()
-        d.context.close_logger()
+        d2x_main = Dandere2x(self.context)
+        d2x_main.run_concurrent()
+        d2x_main.context.close_logger()
 
-        if d.context.config_json['dandere2x']['developer_settings']['gui_delete_workspace_after']:
-            d.delete_workspace_files()
+        if d2x_main.context.config_json['dandere2x']['developer_settings']['gui_delete_workspace_after']:
+            d2x_main.delete_workspace_files()
 
         print("Dandere2x GUI Run Finished Successfully")
         print("\n duration:", time.time() - start)

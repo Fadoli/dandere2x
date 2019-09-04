@@ -1,8 +1,8 @@
 """
-[tremx]
-maybe a cool docstring up here?
-I'm getting many import warnings from pyqt5
-not sure why but whatever, it's working
+The gui part of dandere2x
+Mostly written in QT by aka_katto
+Not much to optimize here other than
+looks and minimalism?
 """
 
 import json
@@ -25,17 +25,14 @@ class QtDandere2xThread(QtCore.QThread):
 
 
     def run(self):
-        d = Dandere2x_Gui_Wrapper(self.config_json)
+        d2x_main = Dandere2x_Gui_Wrapper(self.config_json)
 
         try:
-            d.start()
-        #[tremx] same thing I commented on line 193~
-        #no exception defined here, will do nothing
-        #but Exception too generic, will leave this
-        #even it's wrong for future analysis
-        except Exception:
-            print("dandere2x could not start.. trying again. If it fails, try running as admin..")
-            d.start()
+            d2x_main.start()
+
+        except Exception as e: #yeah, too general exception here
+            print("dandere2x could not start for some reason.\n If you're on Windows try running as admin?")
+            print("The error was:\n", e)
 
         self.finished.emit()
 
@@ -68,11 +65,10 @@ class AppWindow(QMainWindow):
         self.waifu2x_type = ''
         self.use_default_name = True
 
-        #[tremx] forgot to start thread in __init__
+        # not really necessary to init this var here, just to be sure
         self.thread = None
 
-        #[tremx] you're writing QtGui.QFont("Yu Gothic UI Semibold", 11, QtGui.QFont.Bold)
-        #too much, define a font hete for later usage
+        # define a standart font
         self.font = QtGui.QFont("Yu Gothic UI Semibold", 11, QtGui.QFont.Bold)
 
         # theres a bug with qt designer and '80' for default quality needs to be set elsewhere
@@ -80,6 +76,7 @@ class AppWindow(QMainWindow):
         self.ui.image_quality_box.setCurrentText(_translate("Dandere2xGUI", "85"))
         self.ui.block_size_combo_box.setCurrentText(_translate("Dandere2xGUI", "20"))
         self.ui.waifu2x_type_combo_box.setCurrentText(_translate("Dandere2xGUI", "Waifu2x-Vulkan"))
+        
         # self.ui.video_icon.setPixmap(QtGui.QPixmap("assets\\aka.png"))
 
         self.config_buttons()
@@ -191,21 +188,8 @@ class AppWindow(QMainWindow):
         try:
             self.thread.start()
 
-        #[tremx] it's not good to catch all exceptions here
-        #for example, if a IOException or MemoryError occurs
-        #then we gotta stop the program but continue it XD
-        #might be good to list a few known exceptions
-        #doing something like this:
-        #except (Exception1, IHateWritingExceptionTooConfusing) as e:
-        #or better yey, raise our own exception like so:
-        # raise Exception(!var x should be less than 42")
-        #if we encounter something wrong right away.
-        #will leave this way even it's wrong just because
+        except Exception as error: #yup, too broad exception here
 
-        #except:  was the old line
-        except Exception as error:
-            #print("Oops!", sys.exc_info()[0], "occured.")
-            #maybe using 'as error' and printing the error any better?
             print("Oops!", error, "occured.")
             self.ui.upscale_status_label.setFont(self.font)
             self.ui.upscale_status_label.setText("Upscale Failed. See log")
@@ -364,18 +348,9 @@ class AppWindow(QMainWindow):
         filename = QFileDialog.getOpenFileName(w, 'Open File', self.this_folder)
         return filename
 
-#[tremx] iT'S GOOD TO NAME THESE AS uppercase LETTERS
-#BUT YOU ALREADY WROTE THE WHOLE SCRIPT USING THESE IN LOWERCASE.
+
 app = QApplication(sys.argv)
 w = AppWindow()
+w.setWindowTitle("Test")
 w.show()
 sys.exit(app.exec_())
-
-#and there's other few variables that the name is just like: 'd'
-#it's not that intuivive IMO so i'll give you a little poem
-#to remember naming correct your vars
-
-#roses are red
-#violets are blue
-#I need a var name
-#let's call it foo
