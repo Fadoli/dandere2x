@@ -1,4 +1,33 @@
-# Dandere2x - Fast Waifu2x Video Upscaling
+# Dandere2x - Fast Waifu2x Video Upscaling 
+
+## Tremeschin's optimization on Python part of dandere2x
+
+I'll be testing this Linux only but might work fine on Windows OS everything I do, trying to keep it OS and distro agnostic as much as possible.
+
+I'm focusing on optimizations rather than new features since I don't fully understand dandere2x yet.
+
+For history purposes, the first huge commit was two days of work and with a 10 second 480p anime as a sample, the original code for dandere2x finished on avg (3 runs) in 93.9 seconds and my optimizations finished on avg (3 runs) 86.0 seconds. 7.5% speed increase overhaul it ain't much but it's honest work.
+
+Well, considing I chanced not the most compute heavy part of the code.. I think this is going pretty well.
+
+The two tests were done using waifu2x-ncnn-vulkan installed from the AUR on a Arch Linux computer with a RX 570 GPU. I stopped in 3 runs because the time was consistent betwen them: 93.7s, 96.3s, 91.9s; 84.0s, 83.8s, 83.8s.
+
+Performance gains from now might be slower and slower since we're hitting the limiting factor of waifu2x upscale time, but who knows what can we do to circumvent this?
+
+I mean, the cpp part of the code at least on my tests were ahead of the waifu2x upscaling process, we could save some time on having all the merged files ready to upscale finished before the last major call of waifu2x doing a kinda "wait" process to save a few seconds but that's not gonna be much on longer videos at all.
+
+## Todo:
+
+- Clean the code and the comments
+- Make it more procedural (not everybody gonna have the binaries in /usr/bin/)
+- Possible optimizations on string concatenation? "Hello " + name vs "Hello {name}"
+- List comprehension instead of loops?
+- Better usage of block size and waifu2x tile size? Might require a few R&D
+- Debug ocasional gpu infinite loading/unloading waifu2x and doing nothing
+- Profile more the code, couldn't to it properly
+
+
+Now here's the original README from dandere2x utill the time I forked it:
 
 ## What is Dandere2x
 
@@ -81,6 +110,7 @@ This project relies on the following software and projects.
 - FFmpeg
 - STB Image
 - waifu2x-vulkan
+- waifu2x-ncnn-vulkan
 - waifu2x-converter-cpp-deadsix 
 
 Code was used from the following projects
