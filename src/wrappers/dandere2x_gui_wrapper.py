@@ -40,8 +40,4 @@ class Dandere2x_Gui_Wrapper:
             d.delete_workspace_files()
 
         print("Dandere2x GUI Run Finished Successfully")
-
-        end = time.time()
-
-        print("\n "
-              "duration: " + str(time.time() - start))
+        print("\n duration:", time.time() - start)

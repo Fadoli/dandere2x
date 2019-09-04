@@ -3,12 +3,14 @@
 import logging
 import os
 
-import math
+#[tremx] you might not know but I'll send you a pic
+#better to do from math import sqrt for performacne
+#import math
+from math import sqrt
 
 from context import Context
 from dandere2xlib.utils.dandere2x_utils import get_lexicon_value, get_list_from_file
 from wrappers.frame.frame import DisplacementVector, Frame
-
 
 def difference_loop(context, start_frame: int):
     # load variables from context
@@ -40,6 +42,8 @@ def difference_loop(context, start_frame: int):
         debug_output_file = workspace + "debug/debug" + str(x + 1) + extension_type
         output_file = differences_dir + "output_" + get_lexicon_value(6, x) + ".jpg"
 
+        #system hog incoming
+        
         # Save to a temp folder so waifu2x-vulkan doesn't try reading it, then move it
         out_image = make_difference_image(context, f1, difference_data, prediction_data)
         out_image.save_image_temp(output_file, temp_image)
@@ -73,9 +77,41 @@ def difference_loop_resume(context):
 
     difference_loop(context, start_frame=last_found)
 
-
 def make_difference_image(context: Context, raw_frame: Frame, list_difference: list, list_predictive: list):
-    difference_vectors = []
+    #[tremx]
+    if not list_difference:
+        if not list_predictive:
+            out_image = Frame()
+            out_image.create_new(raw_frame.width, raw_frame.height)
+            out_image.copy_image(raw_frame)
+            return out_image
+        else:
+            out_image = Frame()
+            out_image.create_new(1, 1)
+            return out_image
+
+    buffer = 5
+    bleed = context.bleed
+    block_size = context.block_size
+    bleed_frame = raw_frame.create_bleeded_image(buffer)
+
+    image_size = int(sqrt(len(list_difference) / 4) + 1) * (block_size + bleed * 2)
+    out_image = Frame()
+    out_image.create_new(image_size, image_size)
+
+    for x in range(int(len(list_difference) / 4)):
+        y = x*4
+        vector = list(map(int, list_difference[y:y+4]))
+
+        out_image.copy_block(bleed_frame, block_size + bleed * 2,
+                             vector[0] + buffer - bleed, vector[1] + buffer + - bleed,
+                             vector[2] * (block_size + bleed * 2), vector[3] * (block_size + bleed * 2))
+
+    return out_image
+    #/[tremx]
+
+    ############# ORIGINAL CODE #########
+    '''difference_vectors = []
     buffer = 5
     block_size = context.block_size
     bleed = context.bleed
@@ -98,12 +134,43 @@ def make_difference_image(context: Context, raw_frame: Frame, list_difference: l
         out_image = Frame()
         out_image.create_new(raw_frame.width, raw_frame.height)
         out_image.copy_image(raw_frame)
+        return out_image'''
+    '''
+    # if there are no items in 'differences' but have list_predictives
+    # then the two frames are identical, so no differences image needed.
+    if not list_difference and list_predictive:
+        out_image = Frame()
+        out_image.create_new(1, 1)
         return out_image
 
+    # if there are neither any predictive or inversions
+    # then the frame is a brand new frame with no resemblence to previous frame.
+    # in this case copy the entire frame over
+    if not list_difference and not list_predictive:
+        out_image = Frame()
+        out_image.create_new(raw_frame.width, raw_frame.height)
+        out_image.copy_image(raw_frame)
+        return out_image
+    '''
+    # turn the list of differences into a list of vectors
+    
+    #original
+    #difference_vectors.append(DisplacementVector(int(list_difference[x * 4]), int(list_difference[x * 4 + 1]),
+    #                                             int(list_difference[x * 4 + 2]), int(list_difference[x * 4 + 3])))
+
+    # size of output image is determined based off how many differences there are
+
+
+    '''
     # turn the list of differences into a list of vectors
     for x in range(int(len(list_difference) / 4)):
-        difference_vectors.append(DisplacementVector(int(list_difference[x * 4]), int(list_difference[x * 4 + 1]),
-                                                     int(list_difference[x * 4 + 2]), int(list_difference[x * 4 + 3])))
+        #original
+        #difference_vectors.append(DisplacementVector(int(list_difference[x * 4]), int(list_difference[x * 4 + 1]),
+        #                                             int(list_difference[x * 4 + 2]), int(list_difference[x * 4 + 3])))
+        #y = x * 4
+        #difference_vectors.append(DisplacementVector(*list_difference[y:y+3]))
+
+        #the * sends each term of list as param
 
     # size of output image is determined based off how many differences there are
     image_size = int(math.sqrt(len(list_difference) / 4) + 1) * (block_size + bleed * 2)
@@ -116,10 +183,12 @@ def make_difference_image(context: Context, raw_frame: Frame, list_difference: l
                              vector.x_1 + buffer - bleed, vector.y_1 + buffer + - bleed,
                              vector.x_2 * (block_size + bleed * 2), vector.y_2 * (block_size + bleed * 2))
 
-    return out_image
+    return out_image'''
 
 
 # for printing out what Dandere2x predictive frames are doing
+# [tremx] ok i'm not going to rewrite this like I did with make_difference_image since this shooda not run everytime
+# but just to know that it's possible to optimize this a lot
 def debug_image(block_size, frame_base, list_predictive, list_differences, output_location):
     logger = logging.getLogger(__name__)
 

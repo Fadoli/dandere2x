@@ -66,8 +66,13 @@ def wait_on_file(file_string: str):
     exists = os.path.isfile(file_string)
     count = 0
     while not exists:
-        if count % 1000000 == 0:
-            logger.info(file_string + "dne, waiting")
+        if count / 500 == 0:
+            logger.info(file_string + "done, waiting")
+            
+        #[tremx] 10000000000000 too much bruh
+        #lets just watch what file is wanted for more than .5 sec and only one time
+        #if count % 1000000 == 0:
+        #    logger.info(file_string + "dne, waiting")
         exists = os.path.isfile(file_string)
         count += 1
         time.sleep(.001)
@@ -80,8 +85,13 @@ def wait_on_either_file(file_1: str, file_2: str):
     exists_2 = os.path.isfile(file_2)
     count = 0
     while not (exists_1 or exists_2):
-        if count % 1000000 == 0:
-            logger.info(file_1 + "dne, waiting")
+        #[tremx] same here
+        #if count % 1000000 == 0:
+        #    logger.info(file_1 + "dne, waiting")
+
+        if count / 500 == 0:
+            logger.info(file_1 + "done, waiting")
+
         exists_1 = os.path.isfile(file_1)
         exists_2 = os.path.isfile(file_2)
 
@@ -106,12 +116,14 @@ def wait_on_delete_dir(dir: str):
 # many times a file may not exist yet, so just have this function
 # wait if it does not.
 def file_exists(file_string: str):
-    logger = logging.getLogger(__name__)
+    #[tremx] unnused logger var here
+    #logger = logging.getLogger(__name__)
     return os.path.isfile(file_string)
 
 
 def dir_exists(file_string: str):
-    logger = logging.getLogger(__name__)
+    #[tremx] unnused logger var here
+    #logger = logging.getLogger(__name__)
     return os.path.isdir(file_string)
 
 
@@ -201,7 +213,8 @@ def verify_user_settings(context):
     f1 = Frame()
     f1.load_from_string(input_frames_dir + "frame1" + extension_type)
 
-    valid = True
+    #[tremx] unused var 'valid'
+    #valid = True
 
     if f1.width % block_size != 0 and f1.height % block_size != 0:
         print("----------------------ERROR---------------------------------------")
@@ -226,9 +239,11 @@ def verify_user_settings(context):
         context.block_size = new_block_size
 
 
-def main():
-    text = get_list_from_file("/home/linux/Videos/newdebug/yn2/pframe_data/pframe_1.txt")
+#[tremx] since this is a utils file why defining a main func and a if __name__ == '__main__' ?
+#yeah, debug purposes I guess but there's better ways of doing it
 
+#def main():
+#    text = get_list_from_file("/home/linux/Videos/newdebug/yn2/pframe_data/pframe_1.txt")
 
-if __name__ == "__main__":
-    main()
+#if __name__ == "__main__":
+#    main()

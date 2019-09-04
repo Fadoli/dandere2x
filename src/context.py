@@ -2,7 +2,8 @@
 
 Description:
 
-Rather than feed functions stuff like block_size, ffmpeg_dir each time, all the variables needed for every
+Rather than feed functions stuff like block_size, 
+ffmpeg_dir each time, all the variables needed for every
 Dandere2x sub-function call is within
 
 """
@@ -19,7 +20,6 @@ import math
 from dandere2xlib.utils.json_utils import get_options_from_section, absolutify_json
 from wrappers.ffmpeg.videosettings import VideoSettings
 
-
 class Context:
 
     # This is probably the most disorganized part of Dandere2x - everything else is fine.
@@ -27,6 +27,9 @@ class Context:
     # from the json and puts them into an object we can pass around Dandere2x pretty liberally
 
     def __init__(self, config_json_unparsed: json):
+
+        #[tremx] logger was defined outside this init
+        self.logger = None
 
         # load 'this folder' in a pyinstaller friendly way
         self.this_folder = None

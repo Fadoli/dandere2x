@@ -1,3 +1,10 @@
+"""
+[tremx]
+maybe a cool docstring up here?
+I'm getting many import warnings from pyqt5
+not sure why but whatever, it's working
+"""
+
 import json
 import os
 import sys
@@ -22,8 +29,11 @@ class QtDandere2xThread(QtCore.QThread):
 
         try:
             d.start()
-
-        except:
+        #[tremx] same thing I commented on line 193~
+        #no exception defined here, will do nothing
+        #but Exception too generic, will leave this
+        #even it's wrong for future analysis
+        except Exception:
             print("dandere2x could not start.. trying again. If it fails, try running as admin..")
             d.start()
 
@@ -44,7 +54,7 @@ class AppWindow(QMainWindow):
             self.this_folder = os.path.dirname(sys.executable) + os.path.sep
         elif __file__:
             self.this_folder = os.path.dirname(__file__) + os.path.sep
-            
+
         # lazy hack_around for linux build (im not sure why the previous statement doesnt work on venv linux)
         if get_operating_system() == "linux":
             self.this_folder = os.getcwd()
@@ -57,6 +67,13 @@ class AppWindow(QMainWindow):
         self.block_size = ''
         self.waifu2x_type = ''
         self.use_default_name = True
+
+        #[tremx] forgot to start thread in __init__
+        self.thread = None
+
+        #[tremx] you're writing QtGui.QFont("Yu Gothic UI Semibold", 11, QtGui.QFont.Bold)
+        #too much, define a font hete for later usage
+        self.font = QtGui.QFont("Yu Gothic UI Semibold", 11, QtGui.QFont.Bold)
 
         # theres a bug with qt designer and '80' for default quality needs to be set elsewhere
         _translate = QtCore.QCoreApplication.translate
@@ -101,7 +118,7 @@ class AppWindow(QMainWindow):
         # allow user to upscale if two output_file are met
         if self.input_file != '' and self.output_file != '':
             self.ui.upscale_button.setEnabled(True)
-            self.ui.upscale_status_label.setFont(QtGui.QFont("Yu Gothic UI Semibold", 11, QtGui.QFont.Bold))
+            self.ui.upscale_status_label.setFont(self.font)
             self.ui.upscale_status_label.setText("Ready to upscale!")
 
     def refresh_output_file(self):
@@ -137,7 +154,7 @@ class AppWindow(QMainWindow):
 
     def press_upscale_button(self):
 
-        self.ui.upscale_status_label.setFont(QtGui.QFont("Yu Gothic UI Semibold", 11, QtGui.QFont.Bold))
+        self.ui.upscale_status_label.setFont(self.font)
         self.ui.upscale_status_label.setText("Upscaling in Progress")
         self.ui.upscale_status_label.setStyleSheet('color: #fad201')
 
@@ -173,9 +190,24 @@ class AppWindow(QMainWindow):
 
         try:
             self.thread.start()
-        except:
-            print("Oops!", sys.exc_info()[0], "occured.")
-            self.ui.upscale_status_label.setFont(QtGui.QFont("Yu Gothic UI Semibold", 11, QtGui.QFont.Bold))
+
+        #[tremx] it's not good to catch all exceptions here
+        #for example, if a IOException or MemoryError occurs
+        #then we gotta stop the program but continue it XD
+        #might be good to list a few known exceptions
+        #doing something like this:
+        #except (Exception1, IHateWritingExceptionTooConfusing) as e:
+        #or better yey, raise our own exception like so:
+        # raise Exception(!var x should be less than 42")
+        #if we encounter something wrong right away.
+        #will leave this way even it's wrong just because
+
+        #except:  was the old line
+        except Exception as error:
+            #print("Oops!", sys.exc_info()[0], "occured.")
+            #maybe using 'as error' and printing the error any better?
+            print("Oops!", error, "occured.")
+            self.ui.upscale_status_label.setFont(self.font)
             self.ui.upscale_status_label.setText("Upscale Failed. See log")
 
     def disable_buttons(self):
@@ -189,7 +221,7 @@ class AppWindow(QMainWindow):
         self.ui.select_video_button.setEnabled(True)
 
     def update(self):
-        self.ui.upscale_status_label.setFont(QtGui.QFont("Yu Gothic UI Semibold", 11, QtGui.QFont.Bold))
+        self.ui.upscale_status_label.setFont(self.font)
         self.ui.upscale_status_label.setText("Upscale Complete!")
         self.ui.upscale_status_label.setStyleSheet('color: #27FB35')
         self.thread.terminate()
@@ -199,7 +231,8 @@ class AppWindow(QMainWindow):
     # Leave everything as STR's since config files are just strings
     def parse_gui_inputs(self):
 
-        # fuck windows and it's file management system
+        # fuck windows and it's file management system 
+        # [tremx] LMAO XD the double backward slash is a pain IKR
         if get_operating_system() == 'win32':
             self.output_file = self.output_file.replace("/", "\\")
             self.input_file = self.input_file.replace("/", "\\")
@@ -244,9 +277,6 @@ class AppWindow(QMainWindow):
         if self.ui.waifu2x_type_combo_box.currentText() == 'Waifu2x-Vulkan':
             self.waifu2x_type = 'vulkan'
 
-        if self.ui.waifu2x_type_combo_box.currentText() == '"Waifu2x-Vulkan-Legacy"':
-            self.waifu2x_type = 'vulkan_legacy'
-
         if self.ui.waifu2x_type_combo_box.currentText() == 'Waifu2x-Converter-Cpp':
             self.waifu2x_type = "converter_cpp"
 
@@ -257,11 +287,15 @@ class AppWindow(QMainWindow):
         if self.input_file == '':
             return
 
+        #[tremx]
         path, name = os.path.split(self.input_file)
+        #path is unused here but initialized, maybe it's better doing a
+        #name = os.path.split(self.input_file)[1]
+        #since that what we want?
 
         # set the video label to the selected file name
         self.ui.video_label.setText(name)
-        self.ui.video_label.setFont(QtGui.QFont("Yu Gothic UI Semibold", 11, QtGui.QFont.Bold))
+        self.ui.video_label.setFont(self.font)
 
         # parse inputs so we can access variables
         self.parse_gui_inputs()
@@ -311,14 +345,16 @@ class AppWindow(QMainWindow):
 
     def save_file_name(self):
         self.ui.w = QWidget()
-        filter = "Images (*.mkv *.mp4)"
+
+        #[tremx] filter is already a python native function, renaming to d2x_filter
+        d2x_filter = "Images (*.mkv *.mp4)"
         self.ui.w.resize(320, 240)
 
         default_name = self.output_file
         if self.output_file == '':
             default_name = self.this_folder
 
-        filename = QFileDialog.getSaveFileName(w, 'Save File', default_name, filter)
+        filename = QFileDialog.getSaveFileName(w, 'Save File', default_name, d2x_filter)
         return filename[0]
 
     def load_file(self):
@@ -328,8 +364,18 @@ class AppWindow(QMainWindow):
         filename = QFileDialog.getOpenFileName(w, 'Open File', self.this_folder)
         return filename
 
-
+#[tremx] iT'S GOOD TO NAME THESE AS uppercase LETTERS
+#BUT YOU ALREADY WROTE THE WHOLE SCRIPT USING THESE IN LOWERCASE.
 app = QApplication(sys.argv)
 w = AppWindow()
 w.show()
 sys.exit(app.exec_())
+
+#and there's other few variables that the name is just like: 'd'
+#it's not that intuivive IMO so i'll give you a little poem
+#to remember naming correct your vars
+
+#roses are red
+#violets are blue
+#I need a var name
+#let's call it foo

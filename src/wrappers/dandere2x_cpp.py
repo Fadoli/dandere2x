@@ -16,6 +16,10 @@ from dandere2xlib.utils.dandere2x_utils import get_lexicon_value, get_operating_
 
 
 class Dandere2xCppWrapper(threading.Thread):
+    """
+    [tremx] fancy docstring here? :D
+    better if it's on every function
+    """
 
     def __init__(self, context: Context, resume: bool):
         # load stuff from context
@@ -42,26 +46,28 @@ class Dandere2xCppWrapper(threading.Thread):
     def new_run(self):
         logger = logging.getLogger(__name__)
 
-        exec = [self.dandere2x_cpp_dir,
-                self.workspace,
-                str(self.frame_count),
-                str(self.block_size),
-                str(self.step_size),
-                "n",
-                str(1),
-                self.extension_type]
+        #[tremx] exec is a python reserved name, so we're redefining
+        #something we shouldn't be doing; renaming to d2x_exec; parsing
+        d2x_exec = [self.dandere2x_cpp_dir,
+                    self.workspace,
+                    str(self.frame_count),
+                    str(self.block_size),
+                    str(self.step_size),
+                    "n",
+                    str(1),
+                    self.extension_type]
 
-        logger.info(exec)
+        logger.info(d2x_exec)
 
         # On linux, we can't use subprocess.create_new_console, so we just write
         # The dandere2x_cpp output to a text file.
         if get_operating_system() == 'win32':
-            return_val = subprocess.run(exec, creationflags=subprocess.CREATE_NEW_CONSOLE).returncode
+            return_val = subprocess.run(d2x_exec, creationflags=subprocess.CREATE_NEW_CONSOLE).returncode
 
         elif get_operating_system() == 'linux':
             console_output = open(self.log_dir + "dandere2x_cpp.txt", "w")
-            console_output.write(str(exec))
-            return_val = subprocess.run(exec, shell=False, stderr=console_output, stdout=console_output).returncode
+            console_output.write(str(d2x_exec))
+            return_val = subprocess.run(d2x_exec, shell=False, stderr=console_output, stdout=console_output).returncode
 
         if return_val == 0:
             logger.info("d2xcpp finished correctly")
@@ -104,22 +110,23 @@ class Dandere2xCppWrapper(threading.Thread):
 
         # Delete the current files, and resume work from there. We know all 3 of these files exist
         # because we started one lower.
+
         os.remove(self.workspace + os.path.sep + "pframe_data" + os.path.sep + "pframe_" + str(last_found) + ".txt")
-        os.remove(
-            self.workspace + os.path.sep + "inversion_data" + os.path.sep + "inversion_" + str(last_found) + ".txt")
+        os.remove(self.workspace + os.path.sep + "inversion_data" + os.path.sep + "inversion_" + str(last_found) + ".txt")
         os.remove(self.differences_dir + "output_" + get_lexicon_value(6, last_found) + ".png")
 
-        exec = [self.dandere2x_cpp_dir,
-                self.workspace,
-                str(self.frame_count),
-                str(self.block_size),
-                str(self.step_size),
-                "r",
-                str(last_found),
-                self.extension_type]
+        #[tremx] same thing, renaming to d2x_exec and fixing parsing
+        d2x_exec = [self.dandere2x_cpp_dir,
+                    self.workspace,
+                    str(self.frame_count),
+                    str(self.block_size),
+                    str(self.step_size),
+                    "r",
+                    str(last_found),
+                    self.extension_type]
 
-        logger.info(exec)
-        return_val = subprocess.run(exec, creationflags=subprocess.CREATE_NEW_CONSOLE).returncode
+        logger.info(d2x_exec)
+        return_val = subprocess.run(d2x_exec, creationflags=subprocess.CREATE_NEW_CONSOLE).returncode
 
         if return_val == 0:
             logger.info("d2xcpp finished correctly")

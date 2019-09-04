@@ -30,7 +30,6 @@ from scipy import misc  # pip install Pillow
 from dandere2xlib.utils.dandere2x_utils import rename_file
 from dandere2xlib.utils.dandere2x_utils import wait_on_file
 
-
 # fuck this function, lmao. Credits to
 # https://stackoverflow.com/questions/52702809/copy-array-into-part-of-another-array-in-numpy
 def copy_from(A, B, A_start, B_start, B_end):
@@ -39,16 +38,18 @@ def copy_from(A, B, A_start, B_start, B_end):
     B_start is the index with respect to B of the upper left corner of the overlap
     B_end is the index of with respect to B of the lower right corner of the overlap
     """
-    try:
-        A_start, B_start, B_end = map(np.asarray, [A_start, B_start, B_end])
-        shape = B_end - B_start
-        B_slices = tuple(map(slice, B_start, B_end + 1))
-        A_slices = tuple(map(slice, A_start, A_start + shape + 1))
-        B[B_slices] = A[A_slices]
+    
+    #[numba] REMOVE TRY
+    #try:
+    A_start, B_start, B_end = map(np.asarray, [A_start, B_start, B_end])
+    shape = B_end - B_start
+    B_slices = tuple(map(slice, B_start, B_end + 1))
+    A_slices = tuple(map(slice, A_start, A_start + shape + 1))
+    B[B_slices] = A[A_slices]
 
-    except ValueError:
-        logging.info("fatal error copying block")
-        raise ValueError
+    #except ValueError:
+    #    logging.info("fatal error copying block")
+    #    raise ValueError
 
 
 # we need to parse the new input into a non uint8 format so it doesnt overflow,
@@ -131,6 +132,8 @@ class Frame:
             try:
                 self.load_from_string(input_string)
                 loaded = True
+                #[tremx] aaaaawm sleep is so good
+                time.sleep(0.01)
             except PermissionError:
                 logger.info("Permission Error")
                 loaded = False
@@ -142,6 +145,17 @@ class Frame:
     def save_image(self, out_location):
         extension = os.path.splitext(os.path.basename(out_location))[1]
 
+        #[tremx] this is a not much cheap calculation here if done in mass, maybe setting a default ext?
+        ext = 'JPEG' if 'jpg' in extension else 'PNG'
+
+        img = Image.fromarray(self.frame.astype(np.uint8))
+        img.save(out_location + "temp" + extension, format=ext, subsampling=0, quality=100)
+        #wait_on_file(out_location + "temp" + ext)
+        rename_file(out_location + "temp" + extension, out_location)
+
+
+        # ORIGINAL CODE
+        '''
         if 'jpg' in extension:
             jpegsave = Image.fromarray(self.frame.astype(np.uint8))
             jpegsave.save(out_location + "temp" + extension, format='JPEG', subsampling=0, quality=100)
@@ -153,6 +167,7 @@ class Frame:
             save_image.save(out_location + "temp" + extension, format='PNG')
             wait_on_file(out_location + "temp" + extension)
             rename_file(out_location + "temp" + extension, out_location)
+        '''
 
     def save_image_temp(self, out_location, temp_location):
         self.save_image(temp_location)
@@ -163,6 +178,15 @@ class Frame:
     def save_image_quality(self, out_location, quality_per):
         extension = os.path.splitext(os.path.basename(out_location))[1]
 
+        ext = 'JPEG' if 'jpg' in extension else 'PNG'
+
+        img = Image.fromarray(self.frame.astype(np.uint8))
+        img.save(out_location + "temp" + extension, format=ext, subsampling=0, quality=quality_per)
+        #wait_on_file(out_location + "temp" + ext)
+        rename_file(out_location + "temp" + extension, out_location)
+
+        # ORIGINAL CODE
+        '''
         if 'jpg' in extension:
             jpegsave = Image.fromarray(self.frame.astype(np.uint8))
             jpegsave.save(out_location + "temp" + extension, format='JPEG', subsampling=0, quality=quality_per)
@@ -172,6 +196,7 @@ class Frame:
             misc.imsave(out_location + "temp" + extension, self.frame)
             wait_on_file(out_location + "temp" + extension)
             rename_file(out_location + "temp" + extension, out_location)
+        '''
 
     # This function exists because the act of numpy processing an image
     # changes the overall look of an image. (I guess?). In the case
