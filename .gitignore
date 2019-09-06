@@ -46,7 +46,7 @@ var/
 wheels/
 
 #custom dandere2x stuff
-#externals/ [tremx] why not unclide externals?
+externals/
 workspace/
 *.egg-info/
 .installed.cfg

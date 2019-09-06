@@ -83,81 +83,82 @@ for path in path_to_add:
 
 ## SEE IF A WAIFU2X VULKAN BINARY ANY GOOD
 def check_w2x_vulkan():
-    with open("dandere2x_linux.json", "r") as f:
-        data = json.load(f)
-        if data["dandere2x"]["usersettings"]["waifu2x_type"] == "vulkan":
-            vk = data["waifu2x_ncnn_vulkan"]
-            binary = vk["waifu2x_ncnn_vulkan_file_name"]
-            vkrootpath = vk["waifu2x_ncnn_vulkan_path"]
+    if "linux" in get_operating_system():
+        with open("dandere2x_linux.json", "r") as f:
+            data = json.load(f)
+            if data["dandere2x"]["usersettings"]["waifu2x_type"] == "vulkan":
+                vk = data["waifu2x_ncnn_vulkan"]
+                binary = vk["waifu2x_ncnn_vulkan_file_name"]
+                vkrootpath = vk["waifu2x_ncnn_vulkan_path"]
 
-            selectvk = False
+                selectvk = False
 
-            if not os.path.isfile(os.path.join(vkrootpath, binary)):
-                selectvk = True
-            
-            if binary == "" or vkrootpath == "":
-                selectvk = True
+                if not os.path.isfile(os.path.join(vkrootpath, binary)):
+                    selectvk = True
+                
+                if binary == "" or vkrootpath == "":
+                    selectvk = True
 
-            #if not configured a w2x vk binary inthe linux.json file:
-            if selectvk:
-                w2xclass = subprocess.run(['whereis', 'waifu2x-ncnn-vulkan'], stdout=subprocess.PIPE).stdout.decode('utf-8')
-                #with this line we need Python >= 3.5
+                #if not configured a w2x vk binary inthe linux.json file:
+                if selectvk:
+                    w2xclass = subprocess.run(['whereis', 'waifu2x-ncnn-vulkan'], stdout=subprocess.PIPE).stdout.decode('utf-8')
+                    #with this line we need Python >= 3.5
 
-                binaries = w2xclass.split(" ")[1:]
+                    binaries = w2xclass.split(" ")[1:]
 
-                #Permission erros on /usr/share when running as a normal user
-                for i in range(len(binaries) - 1):
-                    if "/usr/share" in binaries[i]:
-                        del binaries[i]
+                    #Permission erros on /usr/share when running as a normal user
+                    for i in range(len(binaries) - 1):
+                        if "/usr/share" in binaries[i]:
+                            del binaries[i]
 
-                print("\n\n !!IMPORTANT!! \n\n")
-                print("No waifu2x vulkan binary found based on the json config")
-                print("Please select (a found) one listed here on your system")
-                print("Or manually configure it in the dandere2x_linux.json file.\n")
+                    print("\n\n !!IMPORTANT!! \n\n")
+                    print("No waifu2x vulkan binary found based on the json config")
+                    print("Please select (a found) one listed here on your system")
+                    print("Or manually configure it in the dandere2x_linux.json file.\n")
 
-                for i in range(len(binaries)):
-                    print("[" + str(i) + "]: ", binaries[i])
+                    for i in range(len(binaries)):
+                        print("[" + str(i) + "]: ", binaries[i])
 
-                while True:
-                    if len(binaries) > 1:
-                        uinput = input("\nEnter the number of the desired binary: ")
-                    else:
-                        print("Only one binary found, will use it.")
-                        uinput = 0
-
-                    try:
-                        uinput = int(uinput)
-                        
-                        if uinput > len(binaries) - 1:
-                            print("You entered a number too high!")
-
-                        elif uinput < 0:
-                            print("You entered a number too low!")
-
+                    while True:
+                        if len(binaries) > 1:
+                            uinput = input("\nEnter the number of the desired binary: ")
                         else:
-                            chosen = binaries[uinput]
-                            print("\n You chose the binary:", chosen)
+                            print("Only one binary found, will use it.")
+                            uinput = 0
 
-                            chosen = chosen.split("/")
+                        try:
+                            uinput = int(uinput)
                             
-                            binfile = chosen[-1]
-                            binpath = '/'.join(chosen[:-1]) + "/"
+                            if uinput > len(binaries) - 1:
+                                print("You entered a number too high!")
 
-                            print("\nBinary: ", binfile)
-                            print("Path: ", binpath)
+                            elif uinput < 0:
+                                print("You entered a number too low!")
 
-                            print("Updating JSON Linux config\n")
-                            
-                            data["waifu2x_ncnn_vulkan"]["waifu2x_ncnn_vulkan_path"] = binpath
-                            data["waifu2x_ncnn_vulkan"]["waifu2x_ncnn_vulkan_file_name"] = binfile
+                            else:
+                                chosen = binaries[uinput]
+                                print("\n You chose the binary:", chosen)
 
-                            with open("dandere2x_linux.json", "w") as f2:
-                                json.dump(data, f2, indent=4)
-                            
-                            break
+                                chosen = chosen.split("/")
+                                
+                                binfile = chosen[-1]
+                                binpath = '/'.join(chosen[:-1]) + "/"
 
-                    except ValueError:
-                        print("That's not a int number!")
+                                print("\nBinary: ", binfile)
+                                print("Path: ", binpath)
+
+                                print("Updating JSON Linux config\n")
+                                
+                                data["waifu2x_ncnn_vulkan"]["waifu2x_ncnn_vulkan_path"] = binpath
+                                data["waifu2x_ncnn_vulkan"]["waifu2x_ncnn_vulkan_file_name"] = binfile
+
+                                with open("dandere2x_linux.json", "w") as f2:
+                                    json.dump(data, f2, indent=4)
+                                
+                                break
+
+                        except ValueError:
+                            print("That's not a int number!")
 check_w2x_vulkan()
 
 
@@ -326,35 +327,39 @@ class Dandere2x:
         # for the time being linux and vulkan have seperate classes
         if name == "vulkan": 
             
-            #loading d2x.json
-            with open("dandere2x_linux.json", "r") as f:
-                data = json.load(f)
-                vk = data["waifu2x_ncnn_vulkan"]
-                vkrootpath = vk["waifu2x_ncnn_vulkan_path"]
+            if "linux" in get_operating_system():
+            
+                #loading d2x.json
+                with open("dandere2x_linux.json", "r") as f:
+                    data = json.load(f)
+                    vk = data["waifu2x_ncnn_vulkan"]
+                    vkrootpath = vk["waifu2x_ncnn_vulkan_path"]
 
-                msg = ("   >> Even though the two have the same binary name\n"
-                       "   >> The two are not interchangeable internally\n"
-                       "   >> If you see errors about bad command usage in the log\n"
-                       "   >> Make sure you have a correct JSON first\n"
-                       "   >> Then see if it's using the right version of w2x-vulkan\n"
-                       "   >> The versions are determined by if in the path the word 'snap' is present.\n\n"
-                       "Extracting frames from video... This might take a while..")
+                    msg = ("   >> Even though the two have the same binary name\n"
+                        "   >> The two are not interchangeable internally\n"
+                        "   >> If you see errors about bad command usage in the log\n"
+                        "   >> Make sure you have a correct JSON first\n"
+                        "   >> Then see if it's using the right version of w2x-vulkan\n"
+                        "   >> The versions are determined by if in the path the word 'snap' is present.\n\n"
+                        "Extracting frames from video... This might take a while..")
 
-                #check if it's snap or not. could be system agnostic, not sure
-                #and then pick the right w2x process to use
+                    #check if it's snap or not. could be system agnostic, not sure
+                    #and then pick the right w2x process to use
 
-                if not "snap" in vkrootpath:
-                    print("\n We're not using waifu2x-ncnn-vulkan from Snap!!\n")
-                    print(msg)
+                    if not "snap" in vkrootpath:
+                        print("\n We're not using waifu2x-ncnn-vulkan from Snap!!\n")
+                        print(msg)
 
-                    return Waifu2xVulkan(self.context)
+                        return Waifu2xVulkan(self.context)
 
-                else:
-                    print("\n We're using waifu2x-ncnn-vulkan from Snap!!\n")
-                    print(msg)
+                    else:
+                        print("\n We're using waifu2x-ncnn-vulkan from Snap!!\n")
+                        print(msg)
 
-                    return Waifu2xVulkanLinux(self.context)
+                        return Waifu2xVulkanLinux(self.context)
 
+            elif "win" in get_operating_system():
+                return Waifu2xVulkan(self.context)
 
             
 

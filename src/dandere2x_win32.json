@@ -1,19 +1,19 @@
 {
   "dandere2x": {
     "usersettings": {
-      "block_size": 20,
+      "block_size": 10  ,
       "quality_minimum": 80,
       "waifu2x_type": "vulkan",
       "denoise_level": 3,
       "scale_factor": 2,
-      "input_file": "..\\workspace\\7secondstwig.mkv",
-      "output_file": "..\\workspace\\7secondstwigd.mkv"
+      "input_file": "..\\workspace\\sample.mkv",
+      "output_file": "..\\workspace\\sample2x.mkv"
     },
     "developer_settings": {
       "realtime_encoding": {
         "realtime_encoding_enabled": true,
         "realtime_encoding_delete_files": false,
-        "realtime_encoding_seconds_per_video": 3
+        "realtime_encoding_seconds_per_video": 1
       },
       "step_size": 8,
       "bleed": 1,
@@ -22,7 +22,7 @@
       "debug": true,
       "workspace_use_temp": false,
       "gui_delete_workspace_after": false,
-      "workspace": "..\\workspace\\7secondstwig_folder\\",
+      "workspace": "..\\workspace\\default\\",
       "dandere2x_cpp_dir": "..\\externals\\dandere2x_cpp.exe"
     }
   },
@@ -60,7 +60,7 @@
     "waifu2x_ncnn_vulkan_path": "..\\externals\\waifu2x-ncnn-vulkan",
     "waifu2x_ncnn_vulkan_file_name": "waifu2x-ncnn-vulkan.exe",
     "output_options": {
-      "-tile-size": 200,
+      "-tile-size": 100,
       "-model-path": "..\\externals\\waifu2x-ncnn-vulkan\\models-upconv_7_anime_style_art_rgb",
       "-gpu": null,
       "-load-proc-save_threads": null,
