@@ -17,7 +17,8 @@ def print_status(context: Context):
     last_10 = [0]
 
     for x in range(1, frame_count):
-        percent = int((x / frame_count) * 100)
+        #for showing 100%
+        percent = int((x / (frame_count - 1)) * 100)
 
         average = 0
         for time_count in last_10:
@@ -42,3 +43,6 @@ def print_status(context: Context):
         later = time.time()
         difference = float(later - now)
         last_10.append(difference)
+    
+    #after upscaling done
+    print("\nMerging all upscaled content...")

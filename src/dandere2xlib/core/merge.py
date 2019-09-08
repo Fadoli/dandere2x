@@ -49,7 +49,7 @@ def merge_loop(context: Context, start_frame: int):
             background_frame_load.start()
 
         # load vectors needed to piece image back together
-        prediction_data_list = get_list_from_file(pframe_data_dir + "pframe_" + str(x) + ".txt")
+        prediction_data_list = get_list_from_file(pframe_data_dir + "pframe_" + str(x) + ".txt", separator=",")
         difference_data_list = get_list_from_file(inversion_data_dir + "inversion_" + str(x) + ".txt")
         correction_data_list = get_list_from_file(correction_data_dir + "correction_" + str(x) + ".txt")
         fade_data_list = get_list_from_file(fade_data_dir + "fade_" + str(x) + ".txt")

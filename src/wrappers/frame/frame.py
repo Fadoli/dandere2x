@@ -169,6 +169,10 @@ class Frame:
             rename_file(out_location + "temp" + extension, out_location)
         '''
 
+    def getres(self):
+        img = Image.fromarray(self.frame.astype(np.uint8))
+        return img.size
+
     def save_image_temp(self, out_location, temp_location):
         self.save_image(temp_location)
         wait_on_file(temp_location)

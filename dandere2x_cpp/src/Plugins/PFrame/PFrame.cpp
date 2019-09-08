@@ -70,9 +70,9 @@ void PFrame::run() {
 
     int max_blocks_possible = (this->height * this->width) / (this->block_size * this->block_size);
     draw_over();
-    std::cout << "max possible blocks: " << max_blocks_possible << std::endl;
-    std::cout << "matched blocks: " << this->matched_blocks_count << std::endl;
-    std::cout << "moving blocks: " << this->moving_blocks_count << std::endl;
+    //std::cout << "max possible blocks: " << max_blocks_possible << std::endl;
+    //std::cout << "matched blocks: " << this->matched_blocks_count << std::endl;
+    //std::cout << "moving blocks: " << this->moving_blocks_count << std::endl;
 }
 
 
@@ -216,10 +216,10 @@ void PFrame::write(std::string output_file) {
                 //matched_blocks[x][y].y_start != matched_blocks[x][y].y_end ) {
 
                 out <<
-                    matched_blocks[x][y].x_start << "\n" <<
-                    matched_blocks[x][y].y_start << "\n" <<
-                    matched_blocks[x][y].x_end << "\n" <<
-                    matched_blocks[x][y].y_end << std::endl;
+                    matched_blocks[x][y].x_start << "," <<
+                    matched_blocks[x][y].y_start << "," <<
+                    matched_blocks[x][y].x_end << "," <<
+                    matched_blocks[x][y].y_end << ",";
             }
         }
     }

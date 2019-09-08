@@ -3,19 +3,21 @@
 import logging
 import os
 
-#[tremx] you might not know but I'll send you a pic
-#better to do from math import sqrt for performacne
-#import math
 from math import sqrt
 
+from PIL import Image
+
 from context import Context
-from dandere2xlib.utils.dandere2x_utils import get_lexicon_value, get_list_from_file
+import numpy as np
+
+from dandere2xlib.utils.dandere2x_utils import get_lexicon_value, get_list_from_file, rename_file
 from wrappers.frame.frame import DisplacementVector, Frame
 
 def difference_loop(context, start_frame: int):
     # load variables from context
     workspace = context.workspace
     differences_dir = context.differences_dir
+    upscaled_dir = context.upscaled_dir
     inversion_data_dir = context.inversion_data_dir
     pframe_data_dir = context.pframe_data_dir
     input_frames_dir = context.input_frames_dir
@@ -36,7 +38,10 @@ def difference_loop(context, start_frame: int):
 
         # Load the neccecary lists to compute this iteration of difference making
         difference_data = get_list_from_file(inversion_data_dir + "inversion_" + str(x) + ".txt")
-        prediction_data = get_list_from_file(pframe_data_dir + "pframe_" + str(x) + ".txt")
+        prediction_data = get_list_from_file(pframe_data_dir + "pframe_" + str(x) + ".txt", separator=',')
+
+        #last item is a ''
+        #del prediction_data[-1]
 
         # Create the output files..
         debug_output_file = workspace + "debug/debug" + str(x + 1) + extension_type
@@ -46,10 +51,28 @@ def difference_loop(context, start_frame: int):
         
         # Save to a temp folder so waifu2x-vulkan doesn't try reading it, then move it
         out_image = make_difference_image(context, f1, difference_data, prediction_data)
-        out_image.save_image_temp(output_file, temp_image)
+
+
+        # since the out_image can return a 1x1 black image (no differences between frames)
+        # I thought it was a good idea to detect whenever these happen and instead of upscaling it
+        # with waifu2x just create a 2x2 black image and save it!
+        if out_image.getres() == (1, 1):
+
+            output_file = upscaled_dir + "output_" + get_lexicon_value(6, x) + ".png"
+            
+            #create 2x2 black pixel image and save to the upscale dir
+            img = Image.fromarray(np.zeros((2, 2, 3), dtype=np.uint8), 'RGB').save(output_file)
+
+        else:
+            #print("ayy")
+            out_image.save_image_temp(output_file, temp_image)
+
+
 
         if debug == 1:
             debug_image(block_size, f1, prediction_data, difference_data, debug_output_file)
+        
+
 
 
 # find the last difference_frame, and start from there.

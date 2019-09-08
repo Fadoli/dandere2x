@@ -35,8 +35,9 @@ void dandere2x::write_empty(std::string input) {
 
 //wait for a file to exist. Consider adding a time out / throw time if not,
 //but for the time being this is a system agnostic function call.
+
 /*
-void dandere2x::wait_for_fil(const std::string &name) {
+void dandere2x::wait_for_file(const std::string &name) {
     int count = 0;
     while (!file_exists(name)) {
         if (count % 10000 == 0) {
@@ -51,6 +52,9 @@ void dandere2x::wait_for_fil(const std::string &name) {
 
 //tremx 
 // tryharding on cpp with only python knowledge part 1 - rewriting damm overkill functions
+
+//wait for a file to exist. Consider adding a time out / throw time if not,
+//but for the time being this is a system agnostic function call.
 
 void dandere2x::wait_for_file(const std::string &name) {
     while (true) {

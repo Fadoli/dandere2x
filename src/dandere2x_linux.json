@@ -6,8 +6,8 @@
             "waifu2x_type": "vulkan",
             "denoise_level": 3,
             "scale_factor": 2,
-            "input_file": "../workspace/sample.mkv",
-            "output_file": "../workspace/sample2x.mkv"
+            "input_file": "../workspace/5sec.mkv",
+            "output_file": "../workspace/5sec2x.mkv"
         },
         "developer_settings": {
             "realtime_encoding": {

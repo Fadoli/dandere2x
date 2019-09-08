@@ -198,7 +198,14 @@ class Waifu2xVulkan(threading.Thread):
 
             for name in upscaled_names[::-1]:
                 if os.path.isfile(self.upscaled_dir + name):
-                    os.remove(self.differences_dir + name.replace(".png", ".jpg"))
+                    try: 
+                        # todo: only ignore files that already exists on upscaled dir
+                        #since we're generating 2x2 black images for non difference between frames
+                        #we gotta forget the diffs that can't be deleted (because they don't even exist)
+                        os.remove(self.differences_dir + name.replace(".png", ".jpg"))
+                    except OSError:
+                        pass
+
                     upscaled_names.remove(name)
 
         console_output.close()

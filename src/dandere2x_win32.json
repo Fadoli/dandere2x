@@ -1,7 +1,7 @@
 {
   "dandere2x": {
     "usersettings": {
-      "block_size": 10  ,
+      "block_size": 20  ,
       "quality_minimum": 80,
       "waifu2x_type": "vulkan",
       "denoise_level": 3,

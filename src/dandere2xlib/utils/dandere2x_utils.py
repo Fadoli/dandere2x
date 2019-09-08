@@ -24,10 +24,14 @@ def get_operating_system():
 
 # THis doesnt work with multiple keys and import warnings
 
-# returns a list given a text file (representing a string)
 
 
-def get_list_from_file(text_file: str):
+# tremx felt like adding a separator option because
+# the one line per vector coordinate on the pframes files
+# were activating my tingles so hard so I separated them into ","
+
+# returns a list given a text file (representing a string) separated by a separator
+def get_list_from_file(text_file: str, separator = "\n"):
     logger = logging.getLogger(__name__)
     exists = exists = os.path.isfile(text_file)
     count = 0
@@ -38,20 +42,20 @@ def get_list_from_file(text_file: str):
         count += 1
         time.sleep(.01)
 
-    file = None
+    topenfile = None
     try:
-        file = open(text_file, "r")
+        topenfile = open(text_file, "r")
     except PermissionError:
         logging.info("permission error on file" + text_file)
 
-    while not file:
+    while not topenfile:
         try:
-            file = open(text_file, "r")
+            topenfile = open(text_file, "r")
         except PermissionError:
             logging.info("permission error on file" + text_file)
 
-    text_list = file.read().split('\n')
-    file.close()
+    text_list = topenfile.read().split(separator)
+    topenfile.close()
 
     if len(text_list) == 1:
         return []
@@ -68,6 +72,7 @@ def wait_on_file(file_string: str):
     while not exists:
         if count / 500 == 0:
             logger.info(file_string + "done, waiting")
+            print("Waiting on file for more than .5s:", file_string)
             
         #[tremx] 10000000000000 too much bruh
         #lets just watch what file is wanted for more than .5 sec and only one time

@@ -16,10 +16,6 @@ from dandere2xlib.utils.dandere2x_utils import get_lexicon_value, get_operating_
 
 
 class Dandere2xCppWrapper(threading.Thread):
-    """
-    [tremx] fancy docstring here? :D
-    better if it's on every function
-    """
 
     def __init__(self, context: Context, resume: bool):
         # load stuff from context
@@ -57,6 +53,7 @@ class Dandere2xCppWrapper(threading.Thread):
                     self.extension_type]
 
         logger.info(d2x_exec)
+        print(d2x_exec)
 
         # On linux, we can't use subprocess.create_new_console, so we just write
         # The dandere2x_cpp output to a text file.
