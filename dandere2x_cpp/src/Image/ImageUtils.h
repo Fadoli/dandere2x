@@ -16,7 +16,6 @@
 
 //tremx
 #include <math.h>
-#include <opencv2/opencv.hpp>
 
 class ImageUtils {
 public:
