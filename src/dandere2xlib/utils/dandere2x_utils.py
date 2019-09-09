@@ -111,7 +111,7 @@ def wait_on_delete_dir(dir: str):
     exists = dir_exists(dir)
     count = 0
     while exists:
-        if count % 1000000 == 0:
+        if count / 500 == 0:
             logger.info(dir + "dne, waiting")
         exists = os.path.isfile(dir)
         count += 1
@@ -121,14 +121,10 @@ def wait_on_delete_dir(dir: str):
 # many times a file may not exist yet, so just have this function
 # wait if it does not.
 def file_exists(file_string: str):
-    #[tremx] unnused logger var here
-    #logger = logging.getLogger(__name__)
     return os.path.isfile(file_string)
 
 
 def dir_exists(file_string: str):
-    #[tremx] unnused logger var here
-    #logger = logging.getLogger(__name__)
     return os.path.isdir(file_string)
 
 
@@ -144,12 +140,7 @@ def rename_file(file1, file2):
 # Both waifu2x-Caffe and waifu2x-conv read images in lexiconic order, so in order
 # to maximize efficiency, save the images that will be upscaled by waifu2x in lexiconic ordering.
 def get_lexicon_value(digits: int, val: int):
-    string = str(val)
-
-    while (len(string) < digits):
-        string = '0' + string
-
-    return string
+    return str(val).zfill(digits) #tremx was angry with the old mess
 
 
 # get frame count from a string input
@@ -218,9 +209,6 @@ def verify_user_settings(context):
     f1 = Frame()
     f1.load_from_string(input_frames_dir + "frame1" + extension_type)
 
-    #[tremx] unused var 'valid'
-    #valid = True
-
     if f1.width % block_size != 0 and f1.height % block_size != 0:
         print("----------------------ERROR---------------------------------------")
         print("Your block size is incompatible with the resolution you provided. ")
@@ -242,13 +230,3 @@ def verify_user_settings(context):
             new_block_size = int(input("Invalid Choice! Re-Enter a correct value: "))
 
         context.block_size = new_block_size
-
-
-#[tremx] since this is a utils file why defining a main func and a if __name__ == '__main__' ?
-#yeah, debug purposes I guess but there's better ways of doing it
-
-#def main():
-#    text = get_list_from_file("/home/linux/Videos/newdebug/yn2/pframe_data/pframe_1.txt")
-
-#if __name__ == "__main__":
-#    main()

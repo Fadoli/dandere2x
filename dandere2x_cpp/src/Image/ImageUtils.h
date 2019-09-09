@@ -14,6 +14,10 @@
 
 #include "../Image/Image.h"
 
+//tremx
+#include <math.h>
+#include <opencv2/opencv.hpp>
+
 class ImageUtils {
 public:
 
@@ -62,30 +66,60 @@ public:
 
         int b1 = (int) color_A.b;
         int b2 = (int) color_B.b;
+        
+        int rdif = abs(r2 - r1);
+        int gdif = abs(g2 - g1);
+        int bdif = abs(b2 - b1);
+    
+        //return (r2 - r1) * (r2 - r1) + (g2 - g1) * (g2 - g1) + (b2 - b1) * (b2 - b1);
 
-        //return (r2 - r1) + (g2 - g1) + (b2 - b1);
-        return (r2 - r1) * (r2 - r1) + (g2 - g1) * (g2 - g1) + (b2 - b1) * (b2 - b1);
+        return rdif*rdif + gdif*gdif + bdif*bdif;
     }
 
 
 
     // Calculuates mean squared error of an entire image
-    static double mse_image(Image &image_A,
-                            Image &image_B) {
+    static double mse_image(Image &image_A, Image &image_B) {
+
         double sum = 0;
 
-        for (int x = 0; x < image_A.width; x++)
-            for (int y = 0; y < image_A.height; y++)
+        for (int x = 0; x < image_A.width; x++) 
+            for (int y = 0; y < image_A.height; y++) 
                 sum += square(image_A.get_color(x, y), image_B.get_color(x, y));
-
+        
         sum /= (image_A.height * image_A.width);
         return sum;
     }
 
 
-    // todo, is this PSNR function written correctly?
-    static double psnr(Image &imageA,
-                       Image &imageB) {
+    static double psnr(Image &imageA, Image &imageB) {
+
+        double mse = mse_image(imageA, imageB);
+        double psnr_value;
+
+        if (mse < 0.01) {
+            psnr_value = 10000000; // the images are basically the same
+        } else {
+            psnr_value = 10 * log10( (255*255) / mse );
+
+            // accounting for potential noise in the codec here??
+            // this better be a decent put value here
+            // it can cause problems like ignoring blocks that
+            // should be resized.
+
+            // in my testing somewhat between 1.5 and 4 should work and not miss any block
+
+            psnr_value *= 3.4;
+        }
+
+        std::cout << "MSE: " << mse << ", PSNR: " << psnr_value << std::endl;
+
+        return psnr_value;
+    }
+
+    // todo, is this PSNR function written correctly? //tremx don't think so, will rewrite
+    /*static double psnr(Image &imageA, Image &imageB) {
+
         double sum = 0;
 
         for (int x = 0; x < imageA.width; x++) {
@@ -96,9 +130,10 @@ public:
 
         sum /= (imageA.height * imageA.width);
 
-        double result = 20 * log10(255) - 10 * log10(sum);
+        double result = 20 * log10(255) - 10 * log10(sum);  // 10 * (2*log10(255)) - log10(sum) = 10*(log10((255*255/sum)))
         return result;
-    }
+    }*/
+
 
     //Calculuates mean squared error between two blocks, where initial_x and initial_y
     //are the starting positions in image_A, and variable_x and variable_y are the
@@ -109,13 +144,18 @@ public:
                              int block_size) {
 
         double sum = 0;
+        
         try {
             for (int x = 0; x < block_size; x++)
                 for (int y = 0; y < block_size; y++)
-                    sum += square(image_A.get_color(initial_x + x, initial_y + y),
-                                       image_B.get_color(variable_x + x, variable_y + y));
-        }
-        catch (std::invalid_argument e) { //make the MSE really high if it went out of bounds (i.e a bad match)
+                    sum += square(image_A.get_color(initial_x  + x, initial_y  + y),
+                                  image_B.get_color(variable_x + x, variable_y + y));
+
+        } catch (std::invalid_argument e) {
+            //make the MSE really high if it went out of bounds (i.e a bad match)
+
+            //tremx thinks: "but why?"
+            //we shouldn't be out of bounds..? will keep it since the code doesn't run at all without this
             return 9999;
         }
 

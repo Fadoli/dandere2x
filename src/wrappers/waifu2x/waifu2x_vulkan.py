@@ -197,14 +197,15 @@ class Waifu2xVulkan(threading.Thread):
             subprocess.call(d2x_exec, shell=False, stderr=console_output, stdout=console_output)
 
             for name in upscaled_names[::-1]:
-                if os.path.isfile(self.upscaled_dir + name):
-                    try: 
-                        # todo: only ignore files that already exists on upscaled dir
-                        #since we're generating 2x2 black images for non difference between frames
-                        #we gotta forget the diffs that can't be deleted (because they don't even exist)
-                        os.remove(self.differences_dir + name.replace(".png", ".jpg"))
-                    except OSError:
-                        pass
+                if os.path.exists(self.upscaled_dir + name):
+                    
+                    diff_file = self.differences_dir + name.replace(".png", ".jpg")
+
+                    # since we're generating 2x2 black images for non "differentiable" frames
+                    # we gotta forget the diffs files that can't be deleted (because they don't even exist)
+
+                    if os.path.exists(diff_file):
+                        os.remove(diff_file)
 
                     upscaled_names.remove(name)
 
