@@ -37,12 +37,12 @@ class DiamondSearch {
 public:
 
     //Flags the points that are out of bounds / not within the scope of the image.
-    static bool flag_invalid_points(int x_bounds, int y_bounds, Block::Point points[], int size, bool flagged[]) {
-
+    static bool flag_invalid_points(int x_bounds, int y_bounds, Block::Point points[], int size, int block_size, bool flagged[]) {
+        
         int count = 0;
         for (int i = 0; i < size; i++) {
-            if ((points[i].x > x_bounds) || (points[i].x < 0) ||
-                (points[i].y > y_bounds) || (points[i].y < 0)) {
+            if ((points[i].x + block_size > x_bounds) || (points[i].x < 0) ||
+                (points[i].y + block_size > y_bounds) || (points[i].y < 0)) {
                 flagged[i] = true;
                 count++;
             }
@@ -75,10 +75,10 @@ public:
 
         //create the points to be used in diamond searching
         Block::Point point_array[TOTAL_CHECKS];
-
+        
         for (int x = 0; x < max_checks; x++) {
             blocks.clear();
-
+            
             //if we ran out of checks, return what we're at right now
             if (x == max_checks - 1) {
                 double sum = ImageUtils::mse(desired_image, input_image, initial_x, initial_y, x_origin, y_origin, box_size);
@@ -90,7 +90,6 @@ public:
                 double sum = ImageUtils::mse(desired_image, input_image, initial_x, initial_y, x_origin, y_origin, box_size);
                 return Block(initial_x, initial_y, x_origin, y_origin, sum);
             }
-
 
             //construct the list of "diamond" points to be checked if legal or not
             point_array[0].x = x_origin + step_size;
@@ -145,20 +144,25 @@ public:
             //In other words, we need to know the index of an array is allowed or not.
 
             bool flag_array[16] = {true};
-            bool any_legal_points = flag_invalid_points(x_bounds, y_bounds, point_array, TOTAL_CHECKS, flag_array);
+            bool any_legal_points = flag_invalid_points(x_bounds, y_bounds, point_array, TOTAL_CHECKS, box_size, flag_array);
+
 
             //flag invalid points returns a boolean if there are no valid points for diamond search to visit
             //therfore, return a 'null' block, (a block with a really high PSNR (peak signal to noise ratio), so it
             //will be ignored by the rest of the system
-            if (!any_legal_points) //if the entire
+            if (!any_legal_points) { //if the entire
                 return Block(0, 0, 0, 0, 99999);
-
+            }
+            
             //cycle through each point (if it's legal that is) and add it to the block vector.
             for (int j = 0; j < TOTAL_CHECKS; j++) {
                 if (!flag_array[j]) {
-                    sum = ImageUtils::mse(desired_image, input_image, initial_x, initial_y, point_array[j].x, point_array[j].y,
-                                          box_size);
 
+                    sum = ImageUtils::mse(desired_image, input_image, 
+                                          initial_x, initial_y, 
+                                          point_array[j].x, point_array[j].y,
+                                          box_size);
+                    
                     Block block = Block(initial_x, initial_y, point_array[j].x, point_array[j].y, sum);
                     blocks.push_back(block);
                 }
@@ -166,7 +170,6 @@ public:
 
             //get the most promising block from the list (the one with the smallest 'sum'
             std::vector<Block>::iterator smallest_block = min_element(blocks.begin(), blocks.end());
-
 
             /** If the smallest block we found meets the MSE requirements, stop here*/
             if (smallest_block->sum <= min_mse){

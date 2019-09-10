@@ -19,7 +19,7 @@
             "bleed": 1,
             "quality_moving_ratio": 0.65,
             "extension_type": ".jpg",
-            "debug": false,
+            "debug": true,
             "workspace_use_temp": false,
             "gui_delete_workspace_after": false,
             "workspace": "../workspace/default/",

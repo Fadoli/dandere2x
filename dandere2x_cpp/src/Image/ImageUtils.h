@@ -56,7 +56,7 @@ public:
      */
 
     inline static int square(const Image::Color &color_A, const Image::Color &color_B) {
-
+        
         int r1 = (int) color_A.r;
         int r2 = (int) color_B.r;
 
@@ -66,21 +66,26 @@ public:
         int b1 = (int) color_A.b;
         int b2 = (int) color_B.b;
         
-        int rdif = abs(r2 - r1);
-        int gdif = abs(g2 - g1);
-        int bdif = abs(b2 - b1);
+        int rdif = r2 - r1;
+        int gdif = g2 - g1;
+        int bdif = b2 - b1;
     
-        //return (r2 - r1) * (r2 - r1) + (g2 - g1) * (g2 - g1) + (b2 - b1) * (b2 - b1);
-
+        // dot product of A² for A = (colorB) - (colorA)
         return rdif*rdif + gdif*gdif + bdif*bdif;
     }
-
 
 
     // Calculuates mean squared error of an entire image
     static double mse_image(Image &image_A, Image &image_B) {
 
         double sum = 0;
+
+        // tremx since the mse of the entire image is kinda computationally costy
+        // why not search for every 2, 3 or even 4 pixels apart?
+        // for a + 2 on x and y in every loop we will be covering about 1/9 of the original image
+        // this might be the ideal number here: cycling through every even pixel in the matrix
+
+        //leaving default rn for future R&D
 
         for (int x = 0; x < image_A.width; x++) 
             for (int y = 0; y < image_A.height; y++) 
@@ -92,7 +97,7 @@ public:
 
 
     static double psnr(Image &imageA, Image &imageB) {
-
+        
         double mse = mse_image(imageA, imageB);
         double psnr_value;
 
@@ -106,9 +111,10 @@ public:
             // it can cause problems like ignoring blocks that
             // should be resized.
 
-            // in my testing somewhat between 1.5 and 4 should work and not miss any block
+            // in my testing somewhat between 1.5 and 4 should work and not miss any good block
+            // the higher, the less sensitivew
 
-            psnr_value *= 3.4;
+            //psnr_value *= 3.4;
         }
 
         std::cout << "MSE: " << mse << ", PSNR: " << psnr_value << std::endl;
@@ -144,18 +150,11 @@ public:
 
         double sum = 0;
         
-        try {
-            for (int x = 0; x < block_size; x++)
-                for (int y = 0; y < block_size; y++)
-                    sum += square(image_A.get_color(initial_x  + x, initial_y  + y),
-                                  image_B.get_color(variable_x + x, variable_y + y));
-
-        } catch (std::invalid_argument e) {
-            //make the MSE really high if it went out of bounds (i.e a bad match)
-
-            //tremx thinks: "but why?"
-            //we shouldn't be out of bounds..? will keep it since the code doesn't run at all without this
-            return 9999;
+        for (int x = 0; x < block_size; x++) {
+            for (int y = 0; y < block_size; y++) {
+                sum += square(image_A.get_color(initial_x  + x, initial_y  + y),
+                              image_B.get_color(variable_x + x, variable_y + y));
+            }
         }
 
         sum /= block_size * block_size;

@@ -218,7 +218,7 @@ void driver_difference(string workspace, int resume_count, int frame_count,
     // get system thread count on cpu?
     unsigned concurentThreadsSupported = std::thread::hardware_concurrency();
 
-    cout << "Maximun difference threads in this system: " << concurentThreadsSupported << endl;
+    cout << "Maximun ideal concurrent threads in this system: " << concurentThreadsSupported << endl;
 
     // create a threads list to put them here aind wait them to finish in batches
     std::vector<std::thread> threads;
@@ -227,6 +227,18 @@ void driver_difference(string workspace, int resume_count, int frame_count,
 
     // could rename this var but left here for readability
     int batchSamples = concurentThreadsSupported;
+
+    batchSamples -= 1; // to compensate the <= in the for loop
+
+    // fail safe if running on a.. 0 core cpu? xD
+    if (batchSamples < 0) {
+        batchSamples = 0;
+    }
+    // the threads uses memory, ~60 MB per thread,
+    // is it a good move to limit this number?
+    // btw no one with a Ryzen 9 3950x; i9 9900k; Epyc or Xenon
+    // gonna have only 4 GBs of Ram.. ? Not limiting this by now
+    // 2 GB of ram on a 32 threads system, not good but not worse.
     
     int imgnum;
 

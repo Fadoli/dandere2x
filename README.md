@@ -1,10 +1,16 @@
-# Dandere2x - Fast Waifu2x Video Upscaling
+# Tremeschin's Dandere2x optimization branch
+
+First of all, this readme is not intended to be short but a general purpose explanation and overview of Dandere2x in my Linux testings for a _potential_ future merge or usage with the master branch (maybe a separate markdown file for Linux users). Mostly for documentation.
+
+I've been working with aka_katto (the creator of D2X) really close in the last few weeks just after the Linux beta version came out since I don't have a Windows rig or a spare HDD on giving suggestions and reviewing the code as well as making little optimizations and simplifications on the code part.
+
+You really shouldn't be running dandere2x if by any chance you don't have a somewhat decent GPU or a really good CPU for longer videos or high resolutions. It'll litteraly take forever in a slow/medium CPU only system or on a slow GPU one. For short videos you can try using it and it'll probably work just fine, just keep an eye on the RAM usage, FFMPEG likes to eat it a bit when multithreaded in mass like dandere2x does.
+
+Keep in mind I'm a casual/hobbyist programmer and I make mistakes like any other human being. 
+
+## Dandere2x - Fast Waifu2x Video Upscaling
 
 Dandere upscales a video using a project based on a Neural Network called Waifu2x with many techniques to speed up this process like block matching, frame compression and multiprocessing.
-
-First of all, you shouldn't be running dandere2x if by any chance you don't have a somewhat decent GPU or a really good CPU for longer videos. It'll litteraly take forever in a slow/medium CPU only system or on a slow GPU one. For short videos you can try using it and it'll probably work just fine, just keep an eye on the RAM usage, FFMPEG likes to eat it a bit when multithreaded in mass like dandere2x does.
-
-## Tremeschin's optimization branch
 
 I'll be testing this Linux only but might work fine on Windows OS everything I do, trying to keep it OS and distro agnostic as much as possible.
 
@@ -24,9 +30,9 @@ Performance gains from now might be slower and slower since we're hitting the li
 
 ## Usage
 
-Well, since I already include the compiled cpp code in the externals folder the process gonna be much easier. Keep in mind I only support _officially_ dandere2x using the Linux `waifu2x-ncnn-vulkan` and `waifu2x-converter-cpp` binaries. It might work on Windows just fine as I said but I just can't easily test it.
+I only support _officially_ dandere2x using the Linux `waifu2x-ncnn-vulkan` and `waifu2x-converter-cpp` binaries on the source code here. Someday and somewhere I'll debug it in a Windows machine but AFAIK I try to make the changes as system agnostic as possible
 
-I really recommend you use a Arch based system here like Manjaro because even aka_katto had some troubles setting up the `waifu2x-ncnn-vulkan` on a Ubuntu based machine, well, if you know how to do it properly you're free!! AFAIK the code on every distro should work just fine.
+I really recommend using an Arch based system like Manjaro for a more bleeding edge (updated) waifu2x client or for easy usage you can use any distro (preferable a Ubuntu based) and get waifu2x-ncnn-vulkan using Snap (more on this later). The downside is that this is a pretty old version of it by the time I'm writing this, we tried contacting the owner but no luck on updating it.
 
 Ok, let's get into the usage of dandere2x itself and after then setting up the dependencies on Linux
 
@@ -66,13 +72,15 @@ They are pretty self explanatory except the `waifu2x_ncnn_vulkan` part, let's ta
 
 ### waifu2x_ncnn_vulkan
 
-I **strongly** recommend using the vulkan version, it's quite faster than other and "more compatible" on modern gpus.
+I **strongly** recommend using the vulkan version, it's quite faster than other and "more compatible" on modern gpus. The `converter-cpp` is also a good choice but you gotta have the opencl stuff installed on the system. More on this later. 
 
 The **path** and the **file** name of `waifu2x_ncnn_vulkan` in that section refers to the installed binary on your system
 
 You can try leaving it off and letting the program finding and asking what waifu2x binary you want to use in the first run or configuring it yourself. 
 
 I recommend just running the program and see if it works, it auto detects if the file pointed in the json is actually a file.
+
+More on the installation later.
 
 ### output_options
 
@@ -92,9 +100,11 @@ Of course, with everything configured properly.
 
 Please, read next section.
 
-## Installing dependencies:
+# Installing dependencies:
 
-I'll only be posting the commands with a Arch Linux based system here. Keep in mind it works perfectly on other distros, you just gotta search and configure yourself a working waifu2x client.
+I'll be writing the commands with a Arch Linux based system and a system with Snap already installed and enabled here. Keep in mind it virtually works perfectly on any other distros as long as you got a working and supported waifu2x client installed
+
+## Arch based
 
 If you haven't got a AUR helper installed like yay (that I recommend using it), install it with the following command:
 
@@ -111,7 +121,7 @@ And uncomment the lines:
 
 Now you have acess to the AUR
 
-Running the following command should get everything working in the waifu2x side:
+Running the following command should get everything working in the waifu2x vulkan version side:
 
 > yay -Syu ncnn-git waifu2x-ncnn-vulkan-git
 
@@ -123,7 +133,22 @@ I'm not a big fan of virtual envs like aka_katto recommended on it's first Linux
 
 And you should be good to go
 
-**Keep in mind everything here can be done with any distro and potentially in Windows as well, you gotta figure out yourself on other distros installing a working waifu2x client and the necessary python environment and dependencies.**
+### waifu2x-converter-cpp
+
+First, install your apropriate GPGPU and OpenCL loaders just to be sure everything will work. There's an awesome page on the [Arch Wiki](https://wiki.archlinux.org/index.php/GPGPU) on how to do it.
+
+Install the packages:
+
+> yay -Syu opencv waifu2x-converter-cpp
+
+In my case I had to install opencv and not opencv2 for the compilation process to work.
+
+## Ubuntu based (or with Snap installed)
+
+> sudo snap install waifu2x-ncnn-vulkan --edge
+
+Done.
+
 
 ## Todo:
 

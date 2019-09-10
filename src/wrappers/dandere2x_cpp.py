@@ -53,7 +53,7 @@ class Dandere2xCppWrapper(threading.Thread):
                     self.extension_type]
 
         logger.info(d2x_exec)
-        print(d2x_exec)
+        print("\n CPP Command:", ' '.join(d2x_exec), "\n")
 
         # On linux, we can't use subprocess.create_new_console, so we just write
         # The dandere2x_cpp output to a text file.

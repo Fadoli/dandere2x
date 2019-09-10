@@ -135,14 +135,13 @@ void PFrame::match_all_blocks() {
     int y = 0;
     int numthreads = 8;
     
-#pragma omp parallel for shared(image1, image2, image2_compressed_static,image2_compressed_moving, matched_blocks) private(x, y)
+#pragma omp parallel for shared(image1, image2, image2_compressed_static, image2_compressed_moving, matched_blocks) private(x, y)
 
     for (x = 0; x < width / block_size; x++) {
         for (y = 0; y < height / block_size; y++) {
             match_block(x, y);
         }
     }
-
 }
 
 
@@ -156,40 +155,48 @@ void PFrame::match_all_blocks() {
  */
 void PFrame::match_block(int x, int y) {
 
+    int startx = x * block_size;
+    int starty = y * block_size;
+
+    //cout << "\n STX, STY: " << startx << " - " << starty << ", BS: " << block_size << endl;
+
     // Using the compressed image, determine a good measure of the minimum MSE required for the matched to have.
     double min_mse_static = ImageUtils::mse(*image2, *image2_compressed_static,
-                                     x * block_size, y * block_size,
-                                     x * block_size, y * block_size,
-                                     block_size);
-
-    double min_mse_moving = ImageUtils::mse(*image2, *image2_compressed_moving,
-                                            x * block_size, y * block_size,
-                                            x * block_size, y * block_size,
+                                            startx, starty,
+                                            startx, starty,
                                             block_size);
 
     // Compute the MSE of the block at the same (x,y) location.
     double stationary_mse = ImageUtils::mse(*image1, *image2,
-                                            x * block_size, y * block_size,
-                                            x * block_size, y * block_size,
+                                            startx, starty,
+                                            startx, starty,
                                             block_size);
 
     // If the MSE found at the stationary location is good enough, add it to the list of matched blocks.
     if (stationary_mse <= min_mse_static) {
-        matched_blocks[x][y] = Block(x * block_size, y * block_size, x * block_size, y * block_size, stationary_mse);
+        matched_blocks[x][y] = Block(startx, starty, startx, starty, stationary_mse);
         this->matched_blocks_count++;
+
     } else {
+        
+        //tremx why compute something we will not use if that conditional is false?
+        double min_mse_moving = ImageUtils::mse(*image2, *image2_compressed_moving,
+                                        startx, starty,
+                                        startx, starty,
+                                        block_size);
+                                        
         // If the MSE found at the stationary location isn't good enough, conduct a diamond search looking
         // for the blocks match nearby.
         Block result = DiamondSearch::diamond_search_iterative_super(*image2, *image1,
-                                                                     x * block_size, y * block_size,
-                                                                     x * block_size, y * block_size,
-                                                                     min_mse_moving, block_size, step_size, max_checks);
-
-//        Block result = ExhaustiveSearch::exhaustive_search(*image2, *image1, x * block_size, y * block_size, block_size);
+                                                                     startx, starty,
+                                                                     startx, starty,
+                                                                     min_mse_moving, block_size, 
+                                                                     step_size, max_checks);
+        //Block result = ExhaustiveSearch::exhaustive_search(*image2, *image1, startx, starty, block_size);
 
         //If the Diamond Searched block is a good enough match, add it to the list of matched blocks.
         if (result.sum <= min_mse_moving && result.x_end != result.x_start && result.y_end != result.y_start) {
-//            std::cout << " x:  " <<  result.x_start << " -> " <<  result.x_end << " y: " <<  result.y_start << " -> " <<  result.y_end << std::endl;
+            //std::cout << " x:  " <<  result.x_start << " -> " <<  result.x_end << " y: " <<  result.y_start << " -> " <<  result.y_end << std::endl;
             matched_blocks[x][y] = result;
             this->matched_blocks_count++;
             this->moving_blocks_count++;

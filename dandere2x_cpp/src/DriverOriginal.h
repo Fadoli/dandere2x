@@ -41,7 +41,6 @@ using namespace std::chrono;
 void driver_difference(string workspace, int resume_count, int frame_count,
                        int block_size, int step_size, string extension_type)  {
 
-
     // Create pre-fixes for all the files needed to be accessed during dandere2x's runtime.
     // We do this primarly for readibility / maintability, as the files Dandere2x needs to
     // Interact with is very consistent in naming.
@@ -100,7 +99,7 @@ void driver_difference(string workspace, int resume_count, int frame_count,
         string image_2_file = image_prefix + to_string(x + 1) + extension_type;
         string image_2_compressed_static_file = compressed_static_prefix + to_string(x + 1) + ".jpg";
         string image_2_compressed_moving_file = compressed_moving_prefix + to_string(x + 1) + ".jpg";
-
+        
         // Wait for those files...
         dandere2x::wait_for_file(image_2_file);
         dandere2x::wait_for_file(image_2_compressed_static_file);
