@@ -1,44 +1,40 @@
 # Tremeschin's Dandere2x optimization branch
 
-First of all, this readme is not intended to be short but a general purpose explanation and overview of Dandere2x in my Linux testings for a _potential_ future merge or usage with the master branch (maybe a separate markdown file for Linux users). Mostly for documentation.
+First of all, this readme is not intended to be short but a general purpose explanation and overview of Dandere2x in my Linux testings for a _potential_ future merge or usage with the master branch (maybe a separate markdown file as a guide for Linux users). Mostly for documentation.
 
-I've been working with aka_katto (the creator of D2X) really close in the last few weeks just after the Linux beta version came out since I don't have a Windows rig or a spare HDD on giving suggestions and reviewing the code as well as making little optimizations and simplifications on the code part.
+I've been working with aka_katto (the creator of D2X) really close in the last few weeks just after the Linux beta version came out (since I don't have a Windows rig or a spare HDD) on giving suggestions and reviewing basically the whole code as well as making little optimizations and simplifications on it.
 
-You really shouldn't be running dandere2x if by any chance you don't have a somewhat decent GPU or a really good CPU for longer videos or high resolutions. It'll litteraly take forever in a slow/medium CPU only system or on a slow GPU one. For short videos you can try using it and it'll probably work just fine, just keep an eye on the RAM usage, FFMPEG likes to eat it a bit when multithreaded in mass like dandere2x does.
+From the deepest parts of my hear, you really shouldn't be running dandere2x if by any chance you don't have a somewhat decent GPU or a really good CPU for longer videos or high resolutions. It'll litteraly take forever in a slow/medium CPU only system or on a slow GPU one. For short videos or gifs you can try using it and it'll probably work just fine, just keep an eye on the RAM usage if you don't have at most 4 GB, FFMPEG likes to eat it a bit when multithreaded "in mass" like dandere2x does.
 
 Keep in mind I'm a casual/hobbyist programmer and I make mistakes like any other human being. 
 
+(like multithreading Driver.h file like crazy and having to revert it because the performance was far worse)
+
 ## Dandere2x - Fast Waifu2x Video Upscaling
 
-Dandere upscales a video using a project based on a Neural Network called Waifu2x with many techniques to speed up this process like block matching, frame compression and multiprocessing.
+Dandere upscales a video using a project based on Neural Networks called Waifu2x with many techniques to speed up this process like block matching, frame compression and multiprocessing.
 
 I'll be testing this Linux only but might work fine on Windows OS everything I do, trying to keep it OS and distro agnostic as much as possible.
 
-I'm focusing on optimizations rather than new features since I don't fully understand dandere2x yet.
+I'm focusing on optimizations rather than new features since I don't fully understand dandere2x yet. Me and aka don't know if this project is feature creep-ed a bit or not but as long as it's decently organized we agreed it's _not._
 
-For history purposes, the first huge commit was two days of work and with a 10 second 480p anime as a sample, the original code for dandere2x finished on avg (3 runs) in 93.9 seconds and my optimizations finished on avg (3 runs) 86.0 seconds. 7.5% speed increase overhaul it ain't much but it's honest work.
+Performance gains from now in new commnits might be slower and slower since we're hitting the limiting factor of waifu2x upscale time, but who knows what can we do to circumvent this?
 
-Well, considing I changed not the most compute heavy part of the code.. I think this is going pretty well.
+Maybe using better block match algorithms like SSIM that got aka interested for a more efficient waifu2x usage?
 
-The two tests were done using `waifu2x-ncnn-vulkan` installed from the AUR on a Arch Linux computer with a RX 570 GPU. I stopped in 3 runs because the time was consistent betwen them: 93.7s, 96.3s, 91.9s; 84.0s, 83.8s, 83.8s.
-
-Well, considering an average of 5.4~ seconds per frame on upscaling the bare frame with waifu2x, it would take 240\*5.4 seconds to finish it!! Just about 21.6 minutes for a 10 second 24 frames per second video and we're finishing* it in under two minutes!!
-
-Performance gains from now might be slower and slower since we're hitting the limiting factor of waifu2x upscale time, but who knows what can we do to circumvent this?
-
-*yeah, it's a lossy process being applied here but on higher resolutions it's not even noticeable
+Anyways, the project itself just works (tm).
 
 ## Usage
 
-I only support _officially_ dandere2x using the Linux `waifu2x-ncnn-vulkan` and `waifu2x-converter-cpp` binaries on the source code here. Someday and somewhere I'll debug it in a Windows machine but AFAIK I try to make the changes as system agnostic as possible
+I only support _officially_ dandere2x using the Linux `waifu2x-ncnn-vulkan` and `waifu2x-converter-cpp` binaries on the code I changed and tested here. Someday and somewhere I'll debug it in a Windows machine but AFAIK I try to make the changes as system agnostic as possible.
 
-I really recommend using an Arch based system like Manjaro for a more bleeding edge (updated) waifu2x client or for easy usage you can use any distro (preferable a Ubuntu based) and get waifu2x-ncnn-vulkan using Snap (more on this later). The downside is that this is a pretty old version of it by the time I'm writing this, we tried contacting the owner but no luck on updating it.
+I really recommend using an Arch based system like Manjaro for a more bleeding edge (updated) waifu2x client or for easy usage you can use any distro (preferable a Ubuntu based) and get waifu2x-ncnn-vulkan using Snap (more on this later), the downside is that this is a pretty old version of it by the time I'm writing this, we tried contacting the owner but no luck on updating it.
 
 Ok, let's get into the usage of dandere2x itself and after then setting up the dependencies on Linux
 
-First you gotta clone this **branch**, not the master one like so:
+First you gotta clone this fork:
 
-> git clone --single-branch --branch tremx-optimizations https://github.com/Tremeschin/dandere2x
+> git clone https://github.com/Tremeschin/dandere2x
 
 Then cd into the src directory:
 
@@ -48,13 +44,13 @@ Now you have two choices: the GUI way or the terminal way.
 
 ## GUI Way
 
-After _cding_ to the src directory just run a simple
+After _cd-ing_ to the src directory just run a simple
 
 > python gui_driver.py
 
 Select the file you want to upscale, select the desired output file name and press that upscale button!
 
-Please, try using the **vulkan waifu2x** process by selecting it in the top left corner.
+Please, try using the **vulkan waifu2x** process by selecting it in the top left corner. It's faster.
 
 Please, read the section Installing dependencies.
 

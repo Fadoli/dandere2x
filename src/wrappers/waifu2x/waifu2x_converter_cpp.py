@@ -38,7 +38,6 @@ class Waifu2xConverterCpp(threading.Thread):
         self.context = context
 
         self.waifu2x_conv_upscale_frame = [self.waifu2x_converter_cpp_dir,
-                                           "-i", "[input_file]",
                                            "--noise-level", str(self.noise_level),
                                            "--scale-ratio", str(self.scale_factor)]
 
@@ -48,7 +47,8 @@ class Waifu2xConverterCpp(threading.Thread):
         for element in waifu2x_conv_options:
             self.waifu2x_conv_upscale_frame.append(element)
 
-        self.waifu2x_conv_upscale_frame.extend(["-o", "[output_file]"])
+        self.waifu2x_conv_upscale_frame.extend(["--input", "[input_file]"])
+        self.waifu2x_conv_upscale_frame.extend(["--output", "[output_file]"])
 
         threading.Thread.__init__(self)
         logging.basicConfig(filename=self.workspace + 'waifu2x.log', level=logging.INFO)
@@ -59,24 +59,25 @@ class Waifu2xConverterCpp(threading.Thread):
         waifu2x_conv_dir_dir = self.context.waifu2x_converter_cpp_path
         logger = logging.getLogger(__name__)
 
-        exec = copy.copy(self.waifu2x_conv_upscale_frame)
+        d2x_exec = copy.copy(self.waifu2x_conv_upscale_frame)
 
-        # replace the exec command withthe files we're concerned with
-        for x in range(len(exec)):
-            if exec[x] == "[input_file]":
-                exec[x] = input_file
+        # replace the d2x_exec command withthe files we're concerned with
+        for x in range(len(d2x_exec)):
+            if d2x_exec[x] == "[input_file]":
+                d2x_exec[x] = input_file
 
-            if exec[x] == "[output_file]":
-                exec[x] = output_file
+            if d2x_exec[x] == "[output_file]":
+                d2x_exec[x] = output_file
 
         os.chdir(waifu2x_conv_dir_dir)
 
         logger.info("manually upscaling file")
-        logger.info(exec)
+        logger.info(d2x_exec)
 
         console_output = open(self.context.log_dir + "waifu2x_conv_upscale_frame_single.txt", "w")
-        console_output.write(str(exec))
-        subprocess.call(exec, shell=True, stderr=console_output, stdout=console_output)
+        console_output.write(str(d2x_exec))
+        print("\n\n\n d2x_exec:", d2x_exec);# exit()
+        subprocess.call(d2x_exec, shell=False, stderr=console_output, stdout=console_output)
 
     # Waifu2x-Converter-Cpp adds this ugly '[NS-L3][x2.000000]' to files, so
     # this function just renames the files so Dandere2x can interpret them correctly.
@@ -84,9 +85,9 @@ class Waifu2xConverterCpp(threading.Thread):
 
         list_of_names = os.listdir(self.upscaled_dir)
         for name in list_of_names:
-            if '[NS-L3][x' + self.scale_factor + '.000000]' in name:
+            if '[L' + self.noise_level + '][x' + self.scale_factor + '.00]' in name:
                 rename_file(self.upscaled_dir + name,
-                            self.upscaled_dir + name.replace('_[NS-L3][x' + self.scale_factor + '.000000]', ''))
+                            self.upscaled_dir + name.replace('[L' + self.noise_level + '][x' + self.scale_factor + '.00]', ''))
 
     # This function is tricky. Essentially we do multiple things in one function
     # Because of 'gotchas'
@@ -105,10 +106,10 @@ class Waifu2xConverterCpp(threading.Thread):
         for x in range(1, self.frame_count):
             file_names.append("output_" + get_lexicon_value(6, x))
 
-        for file in file_names:
-            dirty_name = self.upscaled_dir + file + '_[NS-L' + str(self.noise_level) + '][x' + str(
-                self.scale_factor) + '.000000]' + ".png"
-            clean_name = self.upscaled_dir + file + ".png"
+        for d2x_file in file_names:
+            dirty_name = self.upscaled_dir + d2x_file + '_[L' + str(self.noise_level) + '][x' + str(
+                self.scale_factor) + '.00]' + ".png"
+            clean_name = self.upscaled_dir + d2x_file + ".png"
 
             wait_on_either_file(clean_name, dirty_name)
 
@@ -144,18 +145,18 @@ class Waifu2xConverterCpp(threading.Thread):
         # we need to os.chdir or else waifu2x-conveter won't work.
         os.chdir(self.waifu2x_converter_cpp_path)
 
-        exec = copy.copy(self.waifu2x_conv_upscale_frame)
+        d2x_exec = copy.copy(self.waifu2x_conv_upscale_frame)
 
-        # replace the exec command withthe files we're concerned with
-        for x in range(len(exec)):
-            if exec[x] == "[input_file]":
-                exec[x] = self.differences_dir
+        # replace the d2x_exec command withthe files we're concerned with
+        for x in range(len(d2x_exec)):
+            if d2x_exec[x] == "[input_file]":
+                d2x_exec[x] = self.differences_dir
 
-            if exec[x] == "[output_file]":
-                exec[x] = self.upscaled_dir
+            if d2x_exec[x] == "[output_file]":
+                d2x_exec[x] = self.upscaled_dir
 
         logger.info("waifu2xconv session")
-        logger.info(exec)
+        logger.info(d2x_exec)
 
         # make a list of names that will eventually (past or future) be upscaled
         names = []
@@ -178,10 +179,18 @@ class Waifu2xConverterCpp(threading.Thread):
             logger.info("Frames remaining before batch: ")
             logger.info(len(names))
 
-            console_output.write(str(exec))
-            subprocess.call(exec, shell=False, stderr=console_output, stdout=console_output)
+            console_output.write(str(d2x_exec))
+            subprocess.call(d2x_exec, shell=False, stderr=console_output, stdout=console_output)
 
             for name in names[::-1]:
                 if os.path.isfile(self.upscaled_dir + name):
-                    os.remove(self.differences_dir + name.replace(".png", ".jpg"))
+
+                    diff_file = self.differences_dir + name.replace(".png", ".jpg")
+
+                    # since we're generating 2x2 black images for non "differentiable" frames
+                    # we gotta forget the diffs files that can't be deleted (because they don't even exist)
+
+                    if os.path.exists(diff_file):
+                        os.remove(diff_file)
+
                     names.remove(name)
