@@ -3,7 +3,7 @@
         "usersettings": {
             "block_size": 20,
             "quality_minimum": 85,
-            "waifu2x_type": "converter_cpp",
+            "waifu2x_type": "vulkan",
             "denoise_level": 3,
             "scale_factor": 2,
             "input_file": "../workspace/5sec.mkv",
@@ -62,6 +62,7 @@
         "waifu2x_ncnn_vulkan_file_name": "waifu2x-ncnn-vulkan",
         "output_options": {
             "-t": 256,
+            "-j": "8:1:8",
             "-model-path": null,
             "-gpu": null,
             "-load-proc-save_threads": null,
