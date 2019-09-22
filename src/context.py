@@ -135,6 +135,9 @@ class Context:
         self.dandere2x_cpp_dir = self.config_file['dandere2x']['developer_settings']['dandere2x_cpp_dir']
         self.correction_block_size = 2
 
+        self.minimal_disk_usage = self.config_file['dandere2x']['developer_settings']['minimal_disk_usage']
+        self.max_frames_ahead = self.config_file['dandere2x']['developer_settings']['max_frames_ahead']
+
         # FFMPEG Pipe Encoding, NOTE: THIS OVERRIDES REALTIME ENCODING
         self.ffmpeg_pipe_encoding = self.config_file['dandere2x']['developer_settings']['ffmpeg_pipe_encoding']
         self.ffmpeg_pipe_encoding_type = self.config_file['dandere2x']['developer_settings']['ffmpeg_pipe_encoding_type']

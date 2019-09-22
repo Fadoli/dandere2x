@@ -43,6 +43,7 @@ from wrappers.waifu2x.waifu2x_caffe import Waifu2xCaffe
 from dandere2xlib.realtime_encoding import run_realtime_encoding
 from dandere2xlib.frame_compressor import compress_frames
 from dandere2xlib.core.residual import residual_loop
+from dandere2xlib.minimal_disk import ProgressiveFramesExtractor
 from dandere2xlib.core.merge import merge_loop
 from wrappers.ffmpeg.ffmpeg import extract_frames, trim_video
 from wrappers.dandere2x_cpp import Dandere2xCppWrapper
@@ -114,9 +115,13 @@ class Dandere2x:
         # TODO: check every setting valid? any waifu2x client configured?
 
         # Extract all the frames from source video
-        print("\n  Extracting the frames from source video.. this might take a while..")
-        extract_frames(self.context, self.context.input_file)
-        self.context.update_frame_count()
+        if self.context.minimal_disk_usage:
+            self.PFE = ProgressiveFramesExtractor(self.context) # load PFE
+            self.PFE.first_frame() # get the first frame
+        else:
+            print("\n  Extracting the frames from source video.. this might take a while..")
+            extract_frames(self.context, self.context.input_file)
+            self.context.update_frame_count()
 
         # Assign the waifu2x object to whatever waifu2x we're using
         self.waifu2x = self.get_waifu2x_class(self.context.waifu2x_type)
@@ -152,6 +157,7 @@ class Dandere2x:
         # must not change this order or will mess up with stats thread
         # perhaps use a dictionary to store the threads by name?
 
+        # for the PFE
         self.jobs = []
 
         self.jobs.append(multiprocessing.Process(target=compress_frames, args=(self.context,), daemon=True)) # compress_frames_thread
