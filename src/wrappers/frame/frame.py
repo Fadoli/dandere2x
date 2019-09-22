@@ -100,7 +100,8 @@ class Frame:
 
     def load_from_string(self, input_string):
         # Image.fromarray any better? TODO
-        self.frame = imageio.imread(input_string).astype(np.uint8)
+        self.frame = numpy.asarray(Image.open(input_string))
+        #self.frame = imageio.imread(input_string).astype(np.uint8)
         self.height = self.frame.shape[0]
         self.width = self.frame.shape[1]
         self.string_name = input_string

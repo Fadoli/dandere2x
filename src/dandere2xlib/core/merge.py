@@ -73,25 +73,26 @@ def merge_loop(context: Context, PFEOBJ = None):
 
         else: 
             print("  Error: no valid ffmpeg_pipe_encoding_type set. Using jpeg as default")
-            vcodec = "mjpeg"
+            vcodec = "h264"
             pipe_format = "JPEG"
 
         print("\n    WARNING: EXPERIMENTAL FFMPEG PIPING IS ENABLED\n")
 
-        ffmpegpipe = subprocess.Popen([ffmpeg_dir, "-loglevel", "panic", '-y', '-f', 
+        ffmpeg_pipe_command = [ffmpeg_dir, "-loglevel", "panic", '-y', '-f', 
                                        'image2pipe', '-vcodec', vcodec, '-r', frame_rate, 
                                        '-i', '-', '-vcodec', 'libx264', '-preset', 'medium',
-                                       '-qscale', '5', '-crf', '17',
+                                       '-qscale', '5', '-crf', '17', "-f", "matroska",
                                        '-vf', ' pp=hb/vb/dr/fq|32, deband=range=22:blur=false',
-                                       '-r', frame_rate, nosound_file], 
-                                       stdin=subprocess.PIPE)
+                                       '-r', frame_rate, nosound_file]
+
+        ffmpeg_pipe_subprocess = subprocess.Popen(ffmpeg_pipe_command, stdin=subprocess.PIPE)
 
         # pipe the first merged image as it will not be done afterwards
-        wait_on_file(merged_dir + "merged_" + str(1) + extension_type)
-        im = Image.open(merged_dir + "merged_" + str(1) + extension_type)
+        wait_on_file(merged_dir + "merged_1" + extension_type)
+        im = Image.open(merged_dir + "merged_1" + extension_type)
 
         # best jpeg quality since we won't be saving up disk space
-        im.save(ffmpegpipe.stdin, format=pipe_format, quality=100)
+        im.save(ffmpeg_pipe_subprocess.stdin, format=pipe_format, quality=95)
     
     # # #  # # #  # # #  # # #
 
@@ -166,7 +167,7 @@ def merge_loop(context: Context, PFEOBJ = None):
 
 
             upscaled_file_r = upscaled_dir + "output_" + get_lexicon_value(6, x-1) + ".png" # not x + 1 like the other
-            input_image_r = input_frames_dir + "frame" + str(x) + ".jpg"
+            input_image_r = input_frames_dir + "frame" + str(x-1) + ".jpg"
 
             compressed_file_static_r = compressed_static_dir + "compressed_" + str(x-1) + ".jpg"
             compressed_file_moving_r = compressed_moving_dir + "compressed_" + str(x-1) + ".jpg"
@@ -195,7 +196,7 @@ def merge_loop(context: Context, PFEOBJ = None):
 
             # Write the image directly into ffmpeg pipe
             im = frame_next.get_pil_image()
-            im.save(ffmpegpipe.stdin, format=pipe_format, quality=100)
+            im.save(ffmpeg_pipe_subprocess.stdin, format=pipe_format, quality=95)
 
 
         #######################################
@@ -219,8 +220,8 @@ def merge_loop(context: Context, PFEOBJ = None):
 
 
     if ffmpeg_pipe_encoding:
-        ffmpegpipe.stdin.close()
-        ffmpegpipe.wait()
+        ffmpeg_pipe_subprocess.stdin.close()
+        ffmpeg_pipe_subprocess.wait()
         
         # add the original file audio to the nosound file
         migrate_tracks(context, nosound_file, input_file, output_file)

@@ -6,6 +6,7 @@ import subprocess
 import threading
 import logging
 import copy
+import time
 import os
 
 
@@ -84,23 +85,28 @@ class Waifu2xVulkan(threading.Thread):
 
         """
 
-        file_names = []
-        for x in range(1, self.frame_count):
-            file_names.append("output_" + get_lexicon_value(6, x))
+        #file_names = []
+        #for x in range(1, self.frame_count):
+        #    file_names.append("output_" + get_lexicon_value(6, x))
+        
+        file_names = os.listdir(self.residual_upscaled_dir)
 
         for file_to_fix in file_names:
-            dirty_name = self.residual_upscaled_dir + file_to_fix + ".jpg.png"
-            clean_name = self.residual_upscaled_dir + file_to_fix + ".png"
+            dirty_name = self.residual_upscaled_dir + file_to_fix
+            clean_name = self.residual_upscaled_dir + file_to_fix.replace(".jpg.png", ".png")
 
-            wait_on_either_file(clean_name, dirty_name)
+            #wait_on_either_file(clean_name, dirty_name)
+
+            #time.sleep(0.3) # potential fix in waiting for the file for being written to disk?
 
             if file_exists(clean_name):
-                pass
+                continue
 
             elif file_exists(dirty_name):
                 while file_exists(dirty_name):
                     try:
                         rename_file(dirty_name, clean_name)
+                        
                     except PermissionError:
                         pass
 
@@ -156,8 +162,8 @@ class Waifu2xVulkan(threading.Thread):
         for x in range(1, self.frame_count):
             upscaled_names.append("output_" + get_lexicon_value(6, x) + ".png")
 
-        fix_names_forever_thread = threading.Thread(target=self.fix_names_all)
-        fix_names_forever_thread.start()
+        #fix_names_forever_thread = threading.Thread(target=self.fix_names_all)
+        #fix_names_forever_thread.start()
 
         count_removed = 0
 
@@ -179,6 +185,8 @@ class Waifu2xVulkan(threading.Thread):
             console_output.write(str(exec_command))
             subprocess.call(exec_command, shell=False, stderr=console_output, stdout=console_output)
 
+            self.fix_names_all()
+
             for name in upscaled_names[::-1]:
                 if os.path.exists(self.residual_upscaled_dir + name):
                     
@@ -191,5 +199,7 @@ class Waifu2xVulkan(threading.Thread):
                         os.remove(diff_file)
 
                     upscaled_names.remove(name)
+            
+            
 
         console_output.close()

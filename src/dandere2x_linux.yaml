@@ -1,8 +1,8 @@
 dandere2x:
     usersettings:
 
-        input_file: ../workspace/sample.mkv # the input file to upscale if ran on raw_config drivers
-        output_file: ../workspace/sample2x.mkv #the output ot the upscaled video file.
+        input_file: ../workspace/yn_moving.mkv # the input file to upscale if ran on raw_config drivers
+        output_file: ../workspace/yn_moving2x.mkv #the output ot the upscaled video file.
 
         waifu2x_type: vulkan # the waifu2x client to use, since this is the Linux config file, the supported one are: vulkan, vulkan_legacy (snap), converter_cpp
     
@@ -15,7 +15,7 @@ dandere2x:
     developer_settings:
 
         debug: true # if d2x will write debug frames into workspace/debug, really fun to watch
-        status: true # enable or disable status
+        status: false # enable or disable status
 
         workspace: ../workspace/default/ # path to the workspace folder (lots of files will be written here)
         dandere2x_cpp_dir: ../externals/dandere2x_cpp # path to dandere2x_cpp binary file
