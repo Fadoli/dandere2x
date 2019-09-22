@@ -1,3 +1,4 @@
+from dandere2xlib.utils.dandere2x_utils import wait_on_file
 from wrappers.frame.frame import Frame
 from context import Context
 
@@ -34,8 +35,9 @@ def compress_frames(context: Context):
         # if the compressed frame already exists, don't compress it
         if os.path.exists(compressed_static_dir + ordinal_frame):
             continue
-
+        
         frame = Frame()
-        frame.load_from_string(inputs_dir + "frame" + str(x) + extension_type)
+        # _wait for PFE since we'll not get all inputs first hand
+        frame.load_from_string_wait(inputs_dir + "frame" + str(x) + extension_type)
         frame.save_image_quality(compressed_static_dir + ordinal_frame, quality_minimum)
         frame.save_image_quality(compressed_moving_dir + ordinal_frame, int(quality_minimum * quality_moving_ratio))

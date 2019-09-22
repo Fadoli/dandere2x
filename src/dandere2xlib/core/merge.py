@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import subprocess
 import logging
+import time
 import os
 
 from PIL import Image
@@ -14,8 +15,9 @@ from wrappers.ffmpeg.ffmpeg import migrate_tracks
 from wrappers.frame.asyncframe import AsyncFrameWrite, AsyncFrameRead
 from wrappers.frame.frame import Frame
 
+PFE_enabled = None
 
-def merge_loop(context: Context):
+def merge_loop(context: Context, PFEOBJ = None):
     """
     Call the 'make_merge_image' method for every image that needs to be upscaled.
 
@@ -31,11 +33,17 @@ def merge_loop(context: Context):
 
     """
 
+    global PFE_enabled
+
     # load variables from context
     workspace = context.workspace
     upscaled_dir = context.residual_upscaled_dir
+    compressed_static_dir = context.compressed_static_dir
+    compressed_moving_dir = context.compressed_moving_dir
+    input_frames_dir = context.input_frames_dir
     merged_dir = context.merged_dir
     residual_data_dir = context.residual_data_dir
+    residual_images_dir = context.residual_images_dir
     pframe_data_dir = context.pframe_data_dir
     correction_data_dir = context.correction_data_dir
     fade_data_dir = context.fade_data_dir
@@ -43,7 +51,7 @@ def merge_loop(context: Context):
     extension_type = context.extension_type
     logger = logging.getLogger(__name__)
 
-    # # # ffmpeg piping stuff # # #
+    # # #  ffmpeg piping stuff  # # #
 
     ffmpeg_pipe_encoding = context.ffmpeg_pipe_encoding
 
@@ -87,6 +95,16 @@ def merge_loop(context: Context):
     
     # # #  # # #  # # #  # # #
 
+    # # #  Progressive Frames Extractor (PFE) stuff  # # #
+
+    if PFEOBJ == None:
+        PFE_enabled = False
+    else:
+        PFE_enabled = True
+
+    # # #  # # #  # # #  # # #  # # #  # # #  # # #  # # #
+
+
     # Load the genesis image + the first upscaled image.
     frame_previous = Frame()
     frame_previous.load_from_string_wait(merged_dir + "merged_" + str(1) + extension_type)
@@ -98,6 +116,7 @@ def merge_loop(context: Context):
     # So just make a small note not to load that image. Pretty much load images concurrently until we get to x - 1
     last_frame = False
     for x in range(1, frame_count):
+        
         ###################################
         # Loop-iteration pre-requirements #
         ###################################
@@ -117,14 +136,52 @@ def merge_loop(context: Context):
 
         logger.info("Upscaling frame " + str(x))
 
-        prediction_data_list = get_list_from_file(pframe_data_dir + "pframe_" + str(x) + ".txt")
-        residual_data_list = get_list_from_file(residual_data_dir + "residual_" + str(x) + ".txt")
-        correction_data_list = get_list_from_file(correction_data_dir + "correction_" + str(x) + ".txt")
-        fade_data_list = get_list_from_file(fade_data_dir + "fade_" + str(x) + ".txt")
+        prediction_data_file = pframe_data_dir + "pframe_" + str(x) + ".txt"
+        residual_data_file = residual_data_dir + "residual_" + str(x) + ".txt"
+        correction_data_file = correction_data_dir + "correction_" + str(x) + ".txt"
+        fade_data_file = fade_data_dir + "fade_" + str(x) + ".txt"
+
+        prediction_data_list = get_list_from_file(prediction_data_file)
+        residual_data_list = get_list_from_file(residual_data_file)
+        correction_data_list = get_list_from_file(correction_data_file)
+        fade_data_list = get_list_from_file(fade_data_file)
 
         frame_next = make_merge_image(context, f1, frame_previous,
                                       prediction_data_list, residual_data_list,
                                       correction_data_list, fade_data_list)
+
+        # call next frame and remove the already used ones only
+        # if the minimal-disk setting is enabled on the config
+        if PFE_enabled:
+            PFEOBJ.next_frame()
+
+            # get files to delete, allways delete x-1 files.
+
+            prediction_data_file_r = pframe_data_dir + "pframe_" + str(x-1) + ".txt"
+            residual_data_file_r = residual_data_dir + "residual_" + str(x-1) + ".txt"
+            residual_images_r = residual_images_dir + get_lexicon_value(6, x-1) + ".txt"
+            correction_data_file_r = correction_data_dir + "correction_" + str(x-1) + ".txt"
+            fade_data_file_r = fade_data_dir + "fade_" + str(x-1) + ".txt"
+            merged_image_r = merged_dir + "merged_" + str(x-1) + extension_type
+
+
+            upscaled_file_r = upscaled_dir + "output_" + get_lexicon_value(6, x-1) + ".png" # not x + 1 like the other
+            input_image_r = input_frames_dir + "frame" + str(x) + ".jpg"
+
+            compressed_file_static_r = compressed_static_dir + "compressed_" + str(x-1) + ".jpg"
+            compressed_file_moving_r = compressed_moving_dir + "compressed_" + str(x-1) + ".jpg"
+
+            residual_upscaled_r = upscaled_dir + "output_" + get_lexicon_value(6, x-1) + ".png"
+            
+            # mark them
+            remove = [prediction_data_file_r, residual_data_file_r, residual_images_r, correction_data_file_r,
+                      fade_data_file_r, input_image_r, upscaled_file_r, compressed_file_static_r,
+                      compressed_file_moving_r, residual_upscaled_r, merged_image_r]
+            
+            # remove
+            for item in remove:
+                if os.path.exists(item): #fail safe
+                    os.remove(item)
 
 
         if not ffmpeg_pipe_encoding: # ffmpeg piping is disabled, traditional way
@@ -138,7 +195,7 @@ def merge_loop(context: Context):
 
             # Write the image directly into ffmpeg pipe
             im = frame_next.get_pil_image()
-            im.save(ffmpegpipe.stdin, format=pipe_format, quality=95)
+            im.save(ffmpegpipe.stdin, format=pipe_format, quality=100)
 
 
         #######################################
@@ -155,7 +212,11 @@ def merge_loop(context: Context):
 
         # Ensure the file is loaded for background_frame_load. If we're on the last frame, simply ignore this section
         # Because the frame_count + 1 does not exist.
-    
+
+
+
+
+
 
     if ffmpeg_pipe_encoding:
         ffmpegpipe.stdin.close()
@@ -183,6 +244,8 @@ def make_merge_image(context: Context, frame_residual: Frame, frame_previous: Fr
         - frame(x+1)
     """
 
+    global PFE_enabled
+
     # Load context
     logger = logging.getLogger(__name__)
 
@@ -198,12 +261,13 @@ def make_merge_image(context: Context, frame_residual: Frame, frame_previous: Fr
     # by copying the image first as the first step, all the predictive elements like
     # (0,0) -> (0,0) are also coppied
     out_image.copy_image(frame_previous)
-
     # run the image through the same plugins IN ORDER it was ran in d2x_cpp
     out_image = pframe_image(context, out_image, frame_previous, frame_residual, list_residual, list_predictive)
     out_image = fade_image(context, out_image, list_fade)
-    out_image = correct_image(context, out_image, list_corrections)
-
+    
+    if not PFE_enabled:
+        # couldn't get corrections working this way writing frame by frame
+        out_image = correct_image(context, out_image, list_corrections)
     return out_image
 
 

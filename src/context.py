@@ -134,7 +134,9 @@ class Context:
         self.debug = self.config_file['dandere2x']['developer_settings']['debug']
         self.dandere2x_cpp_dir = self.config_file['dandere2x']['developer_settings']['dandere2x_cpp_dir']
         self.correction_block_size = 2
+        self.status = self.config_file['dandere2x']['developer_settings']['status']
 
+        # Minimal Disk Usase. NOTE: THIS ENABLES FFMPEG_PIPING
         self.minimal_disk_usage = self.config_file['dandere2x']['developer_settings']['minimal_disk_usage']
         self.max_frames_ahead = self.config_file['dandere2x']['developer_settings']['max_frames_ahead']
 
@@ -143,6 +145,9 @@ class Context:
         self.ffmpeg_pipe_encoding_type = self.config_file['dandere2x']['developer_settings']['ffmpeg_pipe_encoding_type']
         self.nosound_file = os.path.join(self.workspace, "nosound") # missing an extension, will set it in a few
 
+        if self.minimal_disk_usage:
+            self.ffmpeg_pipe_encoding = True
+            
         if not self.ffmpeg_pipe_encoding:
             # Real Time Encoding, traditional way
             self.realtime_encoding_enabled = self.config_file['dandere2x']['developer_settings']['realtime_encoding']['realtime_encoding_enabled']

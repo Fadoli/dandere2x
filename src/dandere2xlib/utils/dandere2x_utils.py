@@ -72,12 +72,12 @@ def get_list_from_file(text_file: str):
 
 # many times a file may not exist yet, so just have this function
 # wait if it does not.
-def wait_on_file(file_string: str):
+def wait_on_file(file_string: str, log=True):
     logger = logging.getLogger(__name__)
     exists = os.path.isfile(file_string)
     count = 0
     while not exists:
-        if count / 500 == 0:
+        if log and count / 500 == 0:
             logger.info(file_string + " does not exist, waiting")
         exists = os.path.isfile(file_string)
         count += 1
@@ -85,13 +85,13 @@ def wait_on_file(file_string: str):
 
 
 # for renaming function, break when either file exists
-def wait_on_either_file(file_1: str, file_2: str):
+def wait_on_either_file(file_1: str, file_2: str, log=True):
     logger = logging.getLogger(__name__)
     exists_1 = os.path.isfile(file_1)
     exists_2 = os.path.isfile(file_2)
     count = 0
     while not (exists_1 or exists_2):
-        if count / 500 == 0:
+        if log and count / 500 == 0:
             logger.info(file_1 + " does not exist, waiting")
         exists_1 = os.path.isfile(file_1)
         exists_2 = os.path.isfile(file_2)
@@ -99,6 +99,21 @@ def wait_on_either_file(file_1: str, file_2: str):
         count += 1
         time.sleep(.01)
 
+
+def wait_any_file(files: list, log=True):
+    logger = logging.getLogger(__name__)
+    count = 0
+    while True:
+        existance = [os.path.exists(f) for f in files]
+        count += 1
+        
+        if sum(existance) > 0:
+            break
+        
+        if log and count / 500 == 0:
+            logger.info("Waiting on files: " + ', '.join(files))
+
+        time.sleep(.01)
 
 # Sometimes dandere2x is offsync with window's handlers, and a directory might be deleted after
 # the call was made, so in some cases make sure it's completely deleted before moving on during runtime
@@ -126,7 +141,7 @@ def dir_exists(file_string: str):
     return os.path.isdir(file_string)
 
 
-# custom function to rename file if it already exists
+# custom functions to rename file if it already exists
 def rename_file(file1, file2):
     try:
         os.rename(file1, file2)
@@ -134,6 +149,13 @@ def rename_file(file1, file2):
         os.remove(file2)
         os.rename(file1, file2)
 
+def rename_file_if_exists(file1, file2):
+    if os.path.exists(file1):
+        try:
+            os.rename(file1, file2)
+        except FileExistsError:
+            os.remove(file2)
+            os.rename(file1, file2)
 
 # Both waifu2x-Caffe and waifu2x-conv read images in lexiconic order, so in order
 # to maximize efficiency, save the images that will be upscaled by waifu2x in lexiconic ordering.

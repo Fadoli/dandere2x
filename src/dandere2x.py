@@ -34,12 +34,12 @@ smooth and edges sharp.
 
 import os; os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-from wrappers.waifu2x.waifu2x_converter_cpp import Waifu2xConverterCpp
-from wrappers.waifu2x.waifu2x_vulkan_legacy import Waifu2xVulkanLegacy
+from wrappers.upscalers.waifu2x_converter_cpp import Waifu2xConverterCpp
+from wrappers.upscalers.waifu2x_vulkan_legacy import Waifu2xVulkanLegacy
 from dandere2xlib.utils.dandere2x_utils import valid_input_resolution, get_a_valid_input_resolution, file_exists
 from dandere2xlib.utils.dandere2x_utils import delete_directories, create_directories
-from wrappers.waifu2x.waifu2x_vulkan import Waifu2xVulkan
-from wrappers.waifu2x.waifu2x_caffe import Waifu2xCaffe
+from wrappers.upscalers.waifu2x_vulkan import Waifu2xVulkan
+from wrappers.upscalers.waifu2x_caffe import Waifu2xCaffe
 from dandere2xlib.realtime_encoding import run_realtime_encoding
 from dandere2xlib.frame_compressor import compress_frames
 from dandere2xlib.core.residual import residual_loop
@@ -116,9 +116,25 @@ class Dandere2x:
 
         # Extract all the frames from source video
         if self.context.minimal_disk_usage:
-            self.PFE = ProgressiveFramesExtractor(self.context) # load PFE
-            self.PFE.first_frame() # get the first frame
+
+            # minima-disk we write only (N, N + MaxAhead) frames simultaneously
+            
+            max_frames_ahead = self.context.max_frames_ahead
+            self.PFE = ProgressiveFramesExtractor(self.context) # PFE obj
+            self.PFE.load() # load the video file
+            self.context.frame_count = self.PFE.count_frames() # set context frame count
+
+            # write warning and do frames_ahead + 1 (start image)
+
+            for _ in range(int(max_frames_ahead) + 1):
+                self.PFE.next_frame()
+            
+            print("\n    EXPERIMENTAL: PFE ENABLED!!")
+            print("  MAX FRAMES AHEAD:", max_frames_ahead)
+                
         else:
+            self.PFE = None # PFE defaults to none to merge.py not use it
+
             print("\n  Extracting the frames from source video.. this might take a while..")
             extract_frames(self.context, self.context.input_file)
             self.context.update_frame_count()
@@ -157,14 +173,17 @@ class Dandere2x:
         # must not change this order or will mess up with stats thread
         # perhaps use a dictionary to store the threads by name?
 
-        # for the PFE
+        # for the PFE stuff, should we insert its object into some thread?
+        # better be merge_thread since it is responsible for "waiting" on files
+        # and better for calling next_frame()
+
         self.jobs = []
 
         self.jobs.append(multiprocessing.Process(target=compress_frames, args=(self.context,), daemon=True)) # compress_frames_thread
         self.jobs.append(Dandere2xCppWrapper(self.context)) # dandere2xcpp_thread
-        self.jobs.append(multiprocessing.Process(target=merge_loop, args=(self.context,), daemon=True)) # merge_thread
+        self.jobs.append(threading.Thread(target=merge_loop, args=(self.context, self.PFE,), daemon=True)) # merge_thread
         self.jobs.append(multiprocessing.Process(target=residual_loop, args=(self.context,), daemon=True)) # residual_thread
-        self.jobs.append(threading.Thread(target=print_status, args=(self.context, self))) # status_thread
+        self.jobs.append(threading.Thread(target=print_status, args=(self.context, self), daemon=True)) # status_thread
 
         if self.context.realtime_encoding_enabled:
             self.jobs.append(multiprocessing.Process(target=run_realtime_encoding, args=(self.context, output_file), daemon=True)) # realtime_encode_thread
@@ -182,7 +201,6 @@ class Dandere2x:
         self.waifu2x.join()
 
         self.context.logger.info("Threaded Processes Finished succcesfully")
-
 
     def get_waifu2x_class(self, name: str):
 

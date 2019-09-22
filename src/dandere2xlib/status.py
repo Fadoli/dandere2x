@@ -1,20 +1,16 @@
 from dandere2xlib.utils.dandere2x_utils import get_lexicon_value, wait_on_either_file, wait_on_file, get_operating_system
-from termcolor import colored
 from context import Context
 
 import threading
-import colorama
 import datetime
 import time
 import sys
 import os
 
-colorama.init(convert=True)
 
 # TODO
 # ~This-could-probably-be-improved-visually-for-the-user..-it's-not-the-most-pleasing-to-look-at~ Fixed?
 # Also, in a very niche case the GUI didn't catch up with the deletion of files, so it ceased updating
-
 
 context = None
 lexiconx = None
@@ -63,7 +59,7 @@ def watch_frame():
     # and for a N video file, we'll print N - 1 updates frames since we're starting from the number 1 
     
     # don't start in one, will mess up some printings before starting status thread
-    for x in range(1, frame_count - 1):
+    for x in range(1, frame_count):
 
         percent = int((x / (frame_count - 2)) * 100)
         average_1 = round(sum(last_runs_1) / len(last_runs_1), 2)
@@ -72,7 +68,7 @@ def watch_frame():
 
         estimated_finish = str(datetime.timedelta(seconds=round((frame_count-x-1)*average_all)))
 
-        lexiconx = get_lexicon_value(frame_count_max_char, x + 2) # + 2 because we ignore frame 2 and 1 is upscaled separately
+        lexiconx = get_lexicon_value(frame_count_max_char, x + 1)
         lexiconframe = get_lexicon_value(frame_count_max_char, frame_count)
 
         merged_file = workspace + "merged/merged_" + str(x + 1) + extension_type
@@ -80,7 +76,10 @@ def watch_frame():
 
         start = time.time()
 
-        wait_on_either_file(merged_file, upscaled_file)
+        if context.ffmpeg_pipe_encoding:
+            wait_on_file(upscaled_file, log=False)
+        else:
+            wait_on_either_file(merged_file, upscaled_file, log=False)
 
         # smart loop to store new values, loops from 0 to runs_file_size - 1     
         last_runs_1[x % runs_list_size] = time.time() - start
@@ -91,39 +90,41 @@ def watch_frame():
 def print_status(ctx: Context, d2x_main):
     global context, lexiconx, lexiconframe, percent, runs_list_size, average_1, average_2, average_all, estimated_finish
 
-    started = time.strftime('%X %x')
-
     context = ctx
 
-    WF = threading.Thread(target=watch_frame)
-    WF.start() # Watch Frame thread
-    
-    clearscreen = ClearScreen()
+    if context.status:
+        
+        started = time.strftime('%X %x')
 
-    running = no = ' '
-    finished = yes = 'x'
+        WF = threading.Thread(target=watch_frame)
+        WF.start() # Watch Frame thread
+        
+        clearscreen = ClearScreen()
 
-    ffmpeg_pipe_encoding = yes if context.ffmpeg_pipe_encoding else no
-    
-    ffmpeg_pipe_encoding_type = context.ffmpeg_pipe_encoding_type if context.ffmpeg_pipe_encoding else "-"
+        running = no = ' '
+        finished = yes = 'x'
 
-    #                     merge thread
-    while WF.isAlive() or d2x_main.jobs[2].is_alive():
+        minimal_disk_usage = yes if context.minimal_disk_usage else no
 
-        time.sleep(1)
+        ffmpeg_pipe_encoding = yes if context.ffmpeg_pipe_encoding else no
+        
+        ffmpeg_pipe_encoding_type = context.ffmpeg_pipe_encoding_type if context.ffmpeg_pipe_encoding else "-"
 
-        waifu2xthread = running if d2x_main.waifu2x.is_alive() else finished
-        compress = running if d2x_main.jobs[0].is_alive() else finished
-        dandere2xcpp_thread = running if d2x_main.jobs[1].running() else finished
-        merge_thread = running if d2x_main.jobs[2].is_alive() else finished
-        residual_thread = running if d2x_main.jobs[3].is_alive() else finished
+        #                     merge thread
+        while WF.isAlive() or d2x_main.jobs[2].is_alive():
 
-        module_header = """
+            waifu2xthread = running if d2x_main.waifu2x.is_alive() else finished
+            compress = running if d2x_main.jobs[0].is_alive() else finished
+            dandere2xcpp_thread = running if d2x_main.jobs[1].running() else finished
+            merge_thread = running if d2x_main.jobs[2].is_alive() else finished
+            residual_thread = running if d2x_main.jobs[3].is_alive() else finished
+
+            module_header = """
       [ # ] Dandere2x Work in Progress Status CLI [ # ]
                                               v. [1.0.2]
 
 """
-        module_general = """
+            module_general = """
   General::
       Frame:  [{}/{}] {} %
       Finish: [{}] est.
@@ -134,7 +135,7 @@ def print_status(ctx: Context, d2x_main):
 
 
 
-        module_average = """
+            module_average = """
   Averages::
       Last {} frames: [{}] sec/frame
       Last {} frames: [{}] sec/frame
@@ -147,7 +148,7 @@ def print_status(ctx: Context, d2x_main):
 
     
     
-        module_main_monitor = """
+            module_main_monitor = """
   Dandere2x Main Monitor::
       Compress Thread Finished: [{}]
       Dandere2x CPP Finished:   [{}]
@@ -164,31 +165,33 @@ def print_status(ctx: Context, d2x_main):
 
     
     
-        module_modules = """
+            module_modules = """
   Modules enabled::
       Experimental/FFmpeg pipe encode: [{}]    Type: [{}]
+      Experinemtal/Minimal disk mode:  [{}]
 
-
-""".format(ffmpeg_pipe_encoding, ffmpeg_pipe_encoding_type)
+""".format(ffmpeg_pipe_encoding, ffmpeg_pipe_encoding_type,
+           minimal_disk_usage)
 
     
     
-        module_time = """
+            module_time = """
   Started: [{}]    Now: [{}]
 """.format(started, time.strftime('%X %x'))
-        
+            
 
 
-        statement = module_header + module_general + module_average
+            statement = module_header + module_general + module_average
 
-        if True: # if minimal_disk enabled         # shhh! future thing
-            statement += module_main_monitor
-        
-        statement += module_modules + module_time
-
-
-        clearscreen.clear()
-        print(statement, end='\r')
+            if not context.minimal_disk_usage: # because the threads will not be distant from each other
+                statement += module_main_monitor
+            
+            statement += module_modules + module_time
 
 
-    #print("\n\n Finishing up Dandere2x stuff like migrating audio track, finishing encoding if ffmpeg_pipe_encoding is enabled / final concatenation if not.\n")
+            #clearscreen.clear()
+            print(statement, end='\r')
+            time.sleep(4)
+
+
+        #print("\n\n Finishing up Dandere2x stuff like migrating audio track, finishing encoding if ffmpeg_pipe_encoding is enabled / final concatenation if not.\n")

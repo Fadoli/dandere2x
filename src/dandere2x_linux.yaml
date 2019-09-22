@@ -1,8 +1,8 @@
 dandere2x:
     usersettings:
 
-        input_file: ../workspace/5sec.mkv # the input file to upscale if ran on raw_config drivers
-        output_file: ../workspace/5sec2x.mkv #the output ot the upscaled video file.
+        input_file: ../workspace/sample.mkv # the input file to upscale if ran on raw_config drivers
+        output_file: ../workspace/sample2x.mkv #the output ot the upscaled video file.
 
         waifu2x_type: vulkan # the waifu2x client to use, since this is the Linux config file, the supported one are: vulkan, vulkan_legacy (snap), converter_cpp
     
@@ -14,7 +14,8 @@ dandere2x:
     
     developer_settings:
 
-        debug: false # if d2x will write debug frames into workspace/debug, really fun to watch
+        debug: true # if d2x will write debug frames into workspace/debug, really fun to watch
+        status: true # enable or disable status
 
         workspace: ../workspace/default/ # path to the workspace folder (lots of files will be written here)
         dandere2x_cpp_dir: ../externals/dandere2x_cpp # path to dandere2x_cpp binary file
@@ -28,8 +29,12 @@ dandere2x:
 
         # # # # #
 
-        minimal_disk_usage: true # deletes already used files on workspace dir and limits to max_frames_ahead
-        max_frames_ahead: 5
+        # WARNING: THIS ENABLES FFMPEG_PIPE_ENCODING SINCE IT DOESN'T MAKE SENSE SAVING DISK BUT WRITING MERGED FILES
+
+        minimal_disk_usage: false # deletes already used files on workspace dir and limits to max_frames_ahead
+        max_frames_ahead: 10
+
+        # # # # #
         
         realtime_encoding: # this option each seconds_per_video encodes the merged images into a small video file for the final merge afterwards
             realtime_encoding_delete_files: false
@@ -82,7 +87,9 @@ waifu2x_converter:
         --output-format: null
         --png-compression: null
         --processor: null
-        --silent: true
+        -s: null # silent
+        -m: noise-scale
+        -v: 4 # log level, 0 - 4
 
 
 

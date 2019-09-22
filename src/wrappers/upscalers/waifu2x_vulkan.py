@@ -88,9 +88,9 @@ class Waifu2xVulkan(threading.Thread):
         for x in range(1, self.frame_count):
             file_names.append("output_" + get_lexicon_value(6, x))
 
-        for file in file_names:
-            dirty_name = self.residual_upscaled_dir + file + ".jpg.png"
-            clean_name = self.residual_upscaled_dir + file + ".png"
+        for file_to_fix in file_names:
+            dirty_name = self.residual_upscaled_dir + file_to_fix + ".jpg.png"
+            clean_name = self.residual_upscaled_dir + file_to_fix + ".png"
 
             wait_on_either_file(clean_name, dirty_name)
 

@@ -47,7 +47,6 @@ def residual_loop(context):
         prediction_data = get_list_from_file(pframe_data_dir + "pframe_" + str(x) + ".txt")
 
         # Create the output files..
-        debug_output_file = debug_dir + "debug" + str(x + 1) + extension_type
         output_file = residual_images_dir + "output_" + get_lexicon_value(6, x) + ".jpg"
 
         # Save to a temp folder so waifu2x-vulkan doesn't try reading it, then move it
@@ -65,7 +64,7 @@ def residual_loop(context):
             output_file = residual_upscaled_dir + "output_" + get_lexicon_value(6, x) + ".png"
             
             # Create 2x2 black pixel image and save to the upscale dir
-            img = Image.fromarray(np.zeros((2, 2, 3), dtype=np.uint8), 'RGB').save(output_file)
+            Image.fromarray(np.zeros((2, 2, 3), dtype=np.uint8), 'RGB').save(output_file)
 
         else:
             # This image has things to upscale, continue normally
@@ -74,6 +73,7 @@ def residual_loop(context):
         # With this change the wrappers must be modified to not try deleting the non existing residual file
     
         if debug == 1:
+            debug_output_file = debug_dir + "debug" + str(x + 1) + extension_type
             debug_image(block_size, f1, prediction_data, residual_data, debug_output_file)
 
 

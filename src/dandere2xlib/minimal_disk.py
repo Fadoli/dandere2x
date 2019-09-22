@@ -1,26 +1,29 @@
+from PIL import Image
 import subprocess
 import time
 import cv2
 
-"""
-success,image = vidcap.read()
-count = 0
-while success:
-  cv2.imwrite("frame%d.jpg" % count, image)     # save frame as JPEG file      
-  success,image = vidcap.read()
-  print('Read a new frame: ', success)
-  count += 1
-"""
-
 class ProgressiveFramesExtractor():
+    """
+    This class has some wrapping stuff with python-opencv
+    its main functionality is extracting frame by frame of the video
+    since doing this with only ffmpeg (it's possible) AFAIK will yield
+    much worse performance.
+
+    It'll be running based on the context variable with dandere2x
+    
+    """
     def __init__(self, context):
         self.count = 1
         self.context = context
-
-        self.cap = cv2.VideoCapture(self.context.input_file)
+        self.cap = None
         
         #self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        
+
+
+    def load(self):
+        self.cap = cv2.VideoCapture(self.context.input_file)
+
 
     # TODO: since the python-opencv CAP_PROP_FRAME_COUNT is a estimation,
     # we can't rely on counting the dir len() when in minimal_disk mode,
@@ -30,11 +33,11 @@ class ProgressiveFramesExtractor():
 
         start = time.time()
 
-        cap = cv2.VideoCapture(self.context.input_file)
-        frames = 1
+        counter = cv2.VideoCapture(self.context.input_file)
+        frames = 0
 
         while True:
-            success, image = self.cap.read()
+            success, image = counter.read()
             if success:
                 frames += 1
             else:
@@ -42,10 +45,14 @@ class ProgressiveFramesExtractor():
         
         self.total_frames = frames
 
-        print("    Finding frame count took: ", round(time.time() - start, 2), "sec")
-        print("  Total number of frames:", self.total_frames)
+        print("\n    PFE: Finding frame count took: ", round(time.time() - start, 2), "sec")
+        print("  PFE: Total number of frames:", self.total_frames)
 
-    def count_frames_ffmpeg(self):
+        return self.total_frames
+
+
+    def count_frames_ffmpeg(self): # doesnt work
+        
         process = subprocess.Popen([self.context.ffmpeg_dir, '-i', self.context.input_file, '-map', '0:v:0', '-c', 'copy', '-f', 'null', '-'], stdout=subprocess.PIPE)
         process.wait()
         stdout = process.stdout
@@ -57,35 +64,42 @@ class ProgressiveFramesExtractor():
         self.total_frames = 0
 
 
-    def first_frame(self):
-        success, image = self.cap.read()
-        
-        if success:
-            cv2.imwrite(self.context.input_frames_dir + "frame%d.jpg" % self.count, image)
-            self.count += 1
-
-
     def next_frame(self):
+
         success, image = self.cap.read()
         
         if success:
-            cv2.imwrite(self.context.input_frames_dir + "frame%d.jpg" % self.count, image)
+            cv2.imwrite(self.context.input_frames_dir + "frame%s.jpg" % self.count, image, [cv2.IMWRITE_JPEG_QUALITY, 100])
             self.count += 1
 
-        else:
-            return 1
+        
+    def next_frame_ffmpeg(): # barely work
 
+        frame_out = self.context.input_frames_dir + "frame%s.jpg" % self.count
+
+        process = subprocess.Popen([self.context.ffmpeg_dir, '-loglevel', 'panic', '-i', self.context.input_file,  '-vf', 'select=eq(n\,%s)' % self.count, '-vframes', '1', '-q:v', '1', '-qscale:v:', '2', frame_out])#, stdout=subprocess.PIPE)
+        process.wait()
+
+        self.count += 1
+        
+
+
+"""
 
 class ctx():
     def __init__(self):
-        self.input_frames_dir = "test/"
+        self.input_frames_dir = "cv2png/"
         self.input_file = "5sec.mkv"
         self.ffmpeg_dir = "ffmpeg"
-"""
-test = ProgressiveFramesExtractor(ctx())
 
-test.total_frames
+test = ProgressiveFramesExtractor(ctx())
+test.load()
+
+for _ in range(3000):
+    test.next_frame()
 """
+
+
 #test.first_frame()
 
 

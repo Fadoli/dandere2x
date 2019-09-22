@@ -15,6 +15,7 @@ dandere2x:
     developer_settings:
 
         debug: false # if d2x will write debug frames into workspace/debug, really fun to watch
+        status: true # enable or disable status
 
         workspace: ..\workspace\default\ # path to the workspace folder (lots of files will be written here)
         dandere2x_cpp_dir: ..\externals\dandere2x_cpp.exe # path to dandere2x_cpp binary file
@@ -28,8 +29,12 @@ dandere2x:
 
         # # # # #
 
+        # WARNING: THIS ENABLES FFMPEG_PIPE_ENCODING SINCE IT DOESN'T MAKE SENSE SAVING DISK BUT WRITING MERGED FILES
+
         minimal_disk_usage: true # deletes already used files on workspace dir and limits to max_frames_ahead
-        max_frames_ahead: 5
+        max_frames_ahead: 10
+
+        # # # # #
 
         realtime_encoding: # this option each seconds_per_video encodes the merged images into a small video file for the final merge afterwards
             realtime_encoding_delete_files: false

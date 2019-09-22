@@ -118,5 +118,5 @@ class Waifu2xCaffe(threading.Thread):
 
                     if os.path.exists(diff_file):
                         os.remove(diff_file)
-
-                    upscaled_names.remove(name)
+                    
+                    names.remove(name)

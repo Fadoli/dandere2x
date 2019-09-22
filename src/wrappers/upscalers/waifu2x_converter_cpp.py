@@ -1,4 +1,4 @@
-from dandere2xlib.utils.dandere2x_utils import get_lexicon_value, wait_on_either_file, file_exists, rename_file
+from dandere2xlib.utils.dandere2x_utils import get_lexicon_value, wait_on_either_file, file_exists, rename_file, rename_file_if_exists, wait_any_file
 from dandere2xlib.utils.json_utils import get_options_from_section
 from context import Context
 
@@ -75,8 +75,12 @@ class Waifu2xConverterCpp(threading.Thread):
         list_of_names = os.listdir(self.residual_upscaled_dir)
         for name in list_of_names:
             if '[NS-L3][x' + self.scale_factor + '.000000]' in name:
-                rename_file(self.residual_upscaled_dir + name,
+                rename_file_if_exists(self.residual_upscaled_dir + name,
                             self.residual_upscaled_dir + name.replace('_[NS-L3][x' + self.scale_factor + '.000000]', ''))
+            
+            if '[L' + self.noise_level + '][x' + self.scale_factor + '.00]' in name:
+                rename_file_if_exists(self.residual_upscaled_dir + name,
+                            self.residual_upscaled_dir + name.replace('[L' + self.noise_level + '][x' + self.scale_factor + '.00]', ''))
 
     # This function is tricky. Essentially we do multiple things in one function
     # Because of 'gotchas'
@@ -95,20 +99,29 @@ class Waifu2xConverterCpp(threading.Thread):
         for x in range(1, self.frame_count):
             file_names.append("output_" + get_lexicon_value(6, x))
 
-        for file in file_names:
-            dirty_name = self.residual_upscaled_dir + file + '_[NS-L' + str(self.noise_level) + '][x' + str(
+        for w2x_file in file_names:
+            dirty_name_1 = self.residual_upscaled_dir + w2x_file + '_[NS-L' + str(self.noise_level) + '][x' + str(
                 self.scale_factor) + '.000000]' + ".png"
-            clean_name = self.residual_upscaled_dir + file + ".png"
 
-            wait_on_either_file(clean_name, dirty_name)
+            dirty_name_2 = self.residual_upscaled_dir + w2x_file + '_[L' + str(self.noise_level) + '][x' + str(
+                self.scale_factor) + '.00]' + ".png"
 
-            if file_exists(clean_name):
-                pass
+            clean_name = self.residual_upscaled_dir + w2x_file + ".png"
 
-            elif file_exists(dirty_name):
-                while file_exists(dirty_name):
+            wait_any_file([dirty_name_2, dirty_name_1, clean_name]) #used to wait on clean file here
+
+
+            if file_exists(dirty_name_1):
+                while file_exists(dirty_name_1):
                     try:
-                        rename_file(dirty_name, clean_name)
+                        rename_file(dirty_name_1, clean_name)
+                    except PermissionError:
+                        pass
+            
+            elif file_exists(dirty_name_2):
+                while file_exists(dirty_name_2):
+                    try:
+                        rename_file(dirty_name_2, clean_name)
                     except PermissionError:
                         pass
 
@@ -182,4 +195,4 @@ class Waifu2xConverterCpp(threading.Thread):
                     if os.path.exists(diff_file):
                         os.remove(diff_file)
 
-                    upscaled_names.remove(name)
+                    names.remove(name)

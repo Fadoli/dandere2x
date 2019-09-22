@@ -99,6 +99,7 @@ class Frame:
 
 
     def load_from_string(self, input_string):
+        # Image.fromarray any better? TODO
         self.frame = imageio.imread(input_string).astype(np.uint8)
         self.height = self.frame.shape[0]
         self.width = self.frame.shape[1]
@@ -109,14 +110,15 @@ class Frame:
 
     def load_from_string_wait(self, input_string):
         logger = logging.getLogger(__name__)
-        exists = exists = os.path.isfile(input_string)
+        exists = os.path.isfile(input_string)
         count = 0
         while not exists:
             if count / 40 == 0:
                 logger.info(input_string + " dne")
             exists = os.path.isfile(input_string)
             count += 1
-            time.sleep(.2)
+            time.sleep(.1)
+            print("waiting", input_string)
 
         loaded = False
         while not loaded:
