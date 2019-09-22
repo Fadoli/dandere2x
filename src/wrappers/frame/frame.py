@@ -118,7 +118,6 @@ class Frame:
             exists = os.path.isfile(input_string)
             count += 1
             time.sleep(.1)
-            print("waiting", input_string)
 
         loaded = False
         while not loaded:
