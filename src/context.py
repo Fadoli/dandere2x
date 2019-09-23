@@ -68,28 +68,39 @@ class Context:
         if "waifu2x_caffe" in self.config_file:
             self.waifu2x_caffe_cui_dir = self.config_file['waifu2x_caffe']['waifu2x_caffe_path']
 
-        self.workspace = self.config_file['dandere2x']['developer_settings']['workspace']
-        self.workspace_use_temp = self.config_file['dandere2x']['developer_settings']['workspace_use_temp']
+        # # # # # # #
 
+        self.workspace = self.config_file['dandere2x']['developer_settings']['workspace']
+        self.workspace_use_temp = self.config_file['dandere2x']['developer_settings']['workspace_use_temp'] # disable this if ramdisk mode
+
+        self.ramdisk_mode = self.config_file['dandere2x']['developer_settings']['ramdisk_mode']
+
+        if self.ramdisk_mode:
+            self.ramdisk_if_enabled = "ramdisk%s" % os.path.sep
+            self.workspace_use_temp = False
+        else:
+            self.ramdisk_if_enabled = ""
+        
         # if we're using a temporary workspace, assign workspace to be in the temp folder
+        # disabled if ramdisk_mode
         if self.workspace_use_temp:
             self.workspace = os.path.join(pathlib.Path(tempfile.gettempdir()), 'dandere2x') + os.path.sep
 
         # setup directories
-        self.input_frames_dir = self.workspace + "inputs" + os.path.sep
-        self.residual_images_dir = self.workspace + "residual_images" + os.path.sep
-        self.residual_upscaled_dir = self.workspace + "residual_upscaled" + os.path.sep
-        self.residual_data_dir = self.workspace + "residual_data" + os.path.sep
-        self.pframe_data_dir = self.workspace + "pframe_data" + os.path.sep
-        self.correction_data_dir = self.workspace + "correction_data" + os.path.sep
-        self.merged_dir = self.workspace + "merged" + os.path.sep
-        self.fade_data_dir = self.workspace + "fade_data" + os.path.sep
+        self.input_frames_dir = self.workspace + self.ramdisk_if_enabled + "inputs" + os.path.sep
+        self.residual_images_dir = self.workspace + self.ramdisk_if_enabled + "residual_images" + os.path.sep
+        self.residual_upscaled_dir = self.workspace + self.ramdisk_if_enabled + "residual_upscaled" + os.path.sep
+        self.residual_data_dir = self.workspace + self.ramdisk_if_enabled + "residual_data" + os.path.sep
+        self.pframe_data_dir = self.workspace + self.ramdisk_if_enabled + "pframe_data" + os.path.sep
+        self.correction_data_dir = self.workspace + self.ramdisk_if_enabled + "correction_data" + os.path.sep
+        self.merged_dir = self.workspace + self.ramdisk_if_enabled + "merged" + os.path.sep
+        self.fade_data_dir = self.workspace + self.ramdisk_if_enabled + "fade_data" + os.path.sep
         self.debug_dir = self.workspace + "debug" + os.path.sep
         self.log_dir = self.workspace + "logs" + os.path.sep
-        self.compressed_static_dir = self.workspace + "compressed_static" + os.path.sep
-        self.compressed_moving_dir = self.workspace + "compressed_moving" + os.path.sep
+        self.compressed_static_dir = self.workspace + self.ramdisk_if_enabled + "compressed_static" + os.path.sep
+        self.compressed_moving_dir = self.workspace + self.ramdisk_if_enabled + "compressed_moving" + os.path.sep
         self.encoded_dir = self.workspace + "encoded" + os.path.sep
-        self.temp_image_folder = self.workspace + "temp_image_folder" + os.path.sep
+        self.temp_image_folder = self.workspace + self.ramdisk_if_enabled + "temp_image_folder" + os.path.sep
 
         # put all the directories that need to be created into a list for creation / deleting.
         self.directories = {self.workspace,
@@ -143,11 +154,16 @@ class Context:
         # FFMPEG Pipe Encoding, NOTE: THIS OVERRIDES REALTIME ENCODING
         self.ffmpeg_pipe_encoding = self.config_file['dandere2x']['developer_settings']['ffmpeg_pipe_encoding']
         self.ffmpeg_pipe_encoding_type = self.config_file['dandere2x']['developer_settings']['ffmpeg_pipe_encoding_type']
+        
         self.nosound_file = os.path.join(self.workspace, "nosound") # missing an extension, will set it in a few
 
+
         if self.minimal_disk_usage:
+            # makes no sense talking about minimal
+            # disk usage without piping
             self.ffmpeg_pipe_encoding = True
             
+
         if not self.ffmpeg_pipe_encoding:
             # Real Time Encoding, traditional way
             self.realtime_encoding_enabled = self.config_file['dandere2x']['developer_settings']['realtime_encoding']['realtime_encoding_enabled']
@@ -156,7 +172,6 @@ class Context:
             self.config_file['dandere2x']['developer_settings']['realtime_encoding']['realtime_encoding_seconds_per_video']
 
         else:
-
             # disable traditional "RTE" because we're piping
             self.realtime_encoding_enabled = False
             
@@ -169,7 +184,8 @@ class Context:
             pipe_ext = "." + self.output_file.split(".")[-1]
 
             # add the extension to nosound file
-            self.nosound_file += ".mp4" if not pipe_ext in supported_formats else pipe_ext
+            self.nosound_file_ext = ".mkv" if not pipe_ext in supported_formats else pipe_ext
+            self.nosound_file += self.nosound_file_ext
 
 
         ##################

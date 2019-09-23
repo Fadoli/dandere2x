@@ -23,7 +23,9 @@ class Dandere2x_Gui_Wrapper:
 
         if dir_exists(self.context.workspace):
             print("Deleted Folder")
-            shutil.rmtree(self.context.workspace)
+            # TODO: we can't shutil.rmtree a ramdisk directory
+            # ignore_errors = True fixes?
+            shutil.rmtree(self.context.workspace, ignore_errors=True)
 
         wait_on_delete_dir(self.context.workspace)
         try:

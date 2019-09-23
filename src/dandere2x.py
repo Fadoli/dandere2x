@@ -116,21 +116,25 @@ class Dandere2x:
 
         # Extract all the frames from source video
         if self.context.minimal_disk_usage:
+            # minimal-disk we only write from N to N + MaxAhead frames "simultaneously"
 
-            # minima-disk we write only (N, N + MaxAhead) frames simultaneously
-            
             max_frames_ahead = self.context.max_frames_ahead
+
+            print("\n    WARNING: EXPERIMENTAL PFE ENABLED!!")
+            print("  Max frames ahead var:", max_frames_ahead)
+
             self.PFE = ProgressiveFramesExtractor(self.context) # PFE obj
-            self.PFE.load() # load the video file
+
+            self.context.input_file = self.PFE.ffmpeg_filters_workaround() # FFMPEG NOT WORKING EXTRACTING FRAMES WORKAROUND (USES CV2)
+
+            #self.PFE.load() # load the video file # only if using cv2
+
             self.context.frame_count = self.PFE.count_frames() # set context frame count
 
-            # write warning and do frames_ahead + 1 (start image)
+            # write frames_ahead frames
 
-            for _ in range(int(max_frames_ahead) + 1):
+            for _ in range(max_frames_ahead):
                 self.PFE.next_frame()
-            
-            print("\n    EXPERIMENTAL: PFE ENABLED!!")
-            print("  MAX FRAMES AHEAD:", max_frames_ahead)
                 
         else:
             self.PFE = None # PFE defaults to none to merge.py not use it
@@ -173,16 +177,14 @@ class Dandere2x:
         # must not change this order or will mess up with stats thread
         # perhaps use a dictionary to store the threads by name?
 
-        # for the PFE stuff, should we insert its object into some thread?
-        # better be merge_thread since it is responsible for "waiting" on files
-        # and better for calling next_frame()
+        # daemon=True for them to close when this main thread closes
 
         self.jobs = []
 
-        self.jobs.append(multiprocessing.Process(target=compress_frames, args=(self.context,), daemon=True)) # compress_frames_thread
+        self.jobs.append(threading.Thread(target=compress_frames, args=(self.context,), daemon=True)) # compress_frames_thread
         self.jobs.append(Dandere2xCppWrapper(self.context)) # dandere2xcpp_thread
         self.jobs.append(threading.Thread(target=merge_loop, args=(self.context, self.PFE,), daemon=True)) # merge_thread
-        self.jobs.append(multiprocessing.Process(target=residual_loop, args=(self.context,), daemon=True)) # residual_thread
+        self.jobs.append(threading.Thread(target=residual_loop, args=(self.context,), daemon=True)) # residual_thread
         self.jobs.append(threading.Thread(target=print_status, args=(self.context, self), daemon=True)) # status_thread
 
         if self.context.realtime_encoding_enabled:

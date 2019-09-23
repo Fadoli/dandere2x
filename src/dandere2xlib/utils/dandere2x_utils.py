@@ -157,6 +157,24 @@ def rename_file_if_exists(file1, file2):
             os.remove(file2)
             os.rename(file1, file2)
 
+# remove file until it's done
+def remove_file_wait(file_string: str, log=True):
+    logger = logging.getLogger(__name__)
+    exists = os.path.isfile(file_string)
+    count = 1
+    while exists:
+        try:
+            os.remove(file_string)
+        except OSError:
+            pass
+
+        if log and count % 10 == 0:
+            logger.info(file_string + " can't be remove, try: " + str(count))
+        
+        exists = os.path.isfile(file_string)
+        count += 1
+        time.sleep(.1)
+
 # Both waifu2x-Caffe and waifu2x-conv read images in lexiconic order, so in order
 # to maximize efficiency, save the images that will be upscaled by waifu2x in lexiconic ordering.
 def get_lexicon_value(digits: int, val: int):
@@ -197,7 +215,7 @@ def create_directories(directories_list: list):
     # create each directory
     for subdirectory in directories_list:
         try:
-            os.mkdir(subdirectory)
+            os.makedirs(subdirectory)
         except OSError:
             print("Creation of the directory %s failed, already exists?" % subdirectory)
         else:

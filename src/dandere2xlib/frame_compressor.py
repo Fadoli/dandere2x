@@ -2,6 +2,7 @@ from dandere2xlib.utils.dandere2x_utils import wait_on_file
 from wrappers.frame.frame import Frame
 from context import Context
 
+import time
 import os
 
 
@@ -28,7 +29,7 @@ def compress_frames(context: Context):
     extension_type = context.extension_type
 
     # start from 1 because ffmpeg's extracted frames starts from 1
-    for x in range(1, frame_count + 1):
+    for x in range(1, frame_count):
 
         ordinal_frame = "compressed_" + str(x) + ".jpg"
 
@@ -36,8 +37,19 @@ def compress_frames(context: Context):
         if os.path.exists(compressed_static_dir + ordinal_frame):
             continue
         
-        frame = Frame()
+
         # _wait for PFE since we'll not get all inputs first hand
-        frame.load_from_string_wait(inputs_dir + "frame" + str(x) + extension_type)
+        # TODO this sometimes gets IndexError
+
+        while True: # was giving lots of errors with inputs nominal, insist loading then
+            try:
+                frame = Frame()
+                frame.load_from_string_wait(inputs_dir + "frame" + str(x) + extension_type)
+                break
+
+            except IndexError:
+                #print("insisted loading", x) # debugging purposes
+                time.sleep(0.5)
+
         frame.save_image_quality(compressed_static_dir + ordinal_frame, quality_minimum)
         frame.save_image_quality(compressed_moving_dir + ordinal_frame, int(quality_minimum * quality_moving_ratio))

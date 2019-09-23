@@ -136,8 +136,9 @@ class Frame:
     
 
     def get_pil_image(self):
-        return Image.fromarray(self.frame)
-
+        #return Image.fromarray(self.frame)
+        return Image.fromarray(self.frame, mode='RGB')  
+ 
 
     def save_image(self, out_location):
         """

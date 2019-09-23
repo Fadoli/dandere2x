@@ -39,6 +39,8 @@ def watch_frame():
     workspace = context.workspace
     extension_type = context.extension_type
     frame_count = context.frame_count
+    merged_dir = context.merged_dir
+    residual_upscaled_dir = context.residual_upscaled_dir
 
     frame_count_max_char = len(str(frame_count))
 
@@ -71,8 +73,8 @@ def watch_frame():
         lexiconx = get_lexicon_value(frame_count_max_char, x + 1)
         lexiconframe = get_lexicon_value(frame_count_max_char, frame_count)
 
-        merged_file = workspace + "merged/merged_" + str(x + 1) + extension_type
-        upscaled_file = workspace + "residual_upscaled/output_" + get_lexicon_value(6, x) + ".png"
+        merged_file = merged_dir + "merged_" + str(x + 1) + extension_type
+        upscaled_file = residual_upscaled_dir + "output_" + get_lexicon_value(6, x) + ".png"
 
         start = time.time()
 
@@ -115,7 +117,7 @@ def print_status(ctx: Context, d2x_main):
 
             waifu2xthread = running if d2x_main.waifu2x.is_alive() else finished
             compress = running if d2x_main.jobs[0].is_alive() else finished
-            dandere2xcpp_thread = running if d2x_main.jobs[1].running() else finished
+            dandere2xcpp_thread = running if d2x_main.jobs[1].is_alive() else finished
             merge_thread = running if d2x_main.jobs[2].is_alive() else finished
             residual_thread = running if d2x_main.jobs[3].is_alive() else finished
 
@@ -168,7 +170,7 @@ def print_status(ctx: Context, d2x_main):
             module_modules = """
   Modules enabled::
       Experimental/FFmpeg pipe encode: [{}]    Type: [{}]
-      Experinemtal/Minimal disk mode:  [{}]
+      Experimental/Minimal disk mode:  [{}]
 
 """.format(ffmpeg_pipe_encoding, ffmpeg_pipe_encoding_type,
            minimal_disk_usage)
@@ -183,13 +185,14 @@ def print_status(ctx: Context, d2x_main):
 
             statement = module_header + module_general + module_average
 
-            if not context.minimal_disk_usage: # because the threads will not be distant from each other
-                statement += module_main_monitor
+            #if not context.minimal_disk_usage: # because the threads will not be distant from each other
+            # actually usefull in watching if the encode is done
+            statement += module_main_monitor
             
             statement += module_modules + module_time
 
 
-            #clearscreen.clear()
+            clearscreen.clear()
             print(statement, end='\r')
             time.sleep(4)
 

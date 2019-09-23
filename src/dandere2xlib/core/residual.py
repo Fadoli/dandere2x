@@ -3,6 +3,7 @@
 import logging
 import numpy as np
 import math
+import time
 
 from PIL import Image
 from context import Context
@@ -37,34 +38,57 @@ def residual_loop(context):
     logger = logging.getLogger(__name__)
     logger.info((workspace, 1, frame_count, block_size))
 
+
+    # [WKR] WAIFU2X VULKAN WORKAROUND ON .JPG.PNG
+    waifu2x_type = context.waifu2x_type
+    if waifu2x_type == "vulkan":
+        residual_extension = ""
+    else:
+        residual_extension = ".jpg"
+    # // [WKR] SO WE WON'T BE RENAMING FILES AFTERWARDS
+
+
     # for every frame in the video, create a residual_frame given the text files.
     for x in range(1, frame_count):
-        f1 = Frame()
-        f1.load_from_string_wait(input_frames_dir + "frame" + str(x + 1) + extension_type)
+        
+        
+        # TODO this sometimes gets IndexError
+        while True: # was giving lots of errors with inputs nominal, insist loading then
+            try:
+                f1 = Frame()
+                f1.load_from_string_wait(input_frames_dir + "frame" + str(x + 1) + extension_type)
+                break
+
+            except IndexError:
+                #print("insisted loading", x) # debugging purposes
+                time.sleep(0.5)
+
 
         # Load the neccecary lists to compute this iteration of residual making
         residual_data = get_list_from_file(residual_data_dir + "residual_" + str(x) + ".txt")
         prediction_data = get_list_from_file(pframe_data_dir + "pframe_" + str(x) + ".txt")
 
         # Create the output files..
-        output_file = residual_images_dir + "output_" + get_lexicon_value(6, x) + ".jpg"
+        output_file = residual_images_dir + "output_" + get_lexicon_value(6, x) + residual_extension # [WKR]
 
         # Save to a temp folder so waifu2x-vulkan doesn't try reading it, then move it
         out_image = make_residual_image(context, f1, residual_data, prediction_data)
         
 
-        # Since the out_image can return a 1x1 black image (no differences between frames)
-        # a little hacky solution is to detect whenever these happen and instead of upscaling it
-        # with waifu2x just create a 2x2 black image and save it in the upscaled dir!
-
-        # Note: the 2x2 block will work the best with a good block matching algorithm
-        
         if out_image.getres() == (1, 1):
+            """
+            If out_image is (1,1) in size, then frame_x and frame_x+1 are identical.
+            We still need to save an outimage for sake of having N output images for N input images, so we
+            save these meaningless files anyways.
+            However, these 1x1 can slow whatever waifu2x implementation down, so we 'cheat' d2x 
+            but 'fake' upscaling them, so that they don't need to be processed by waifu2x.
+            """
+
             # The hacky upscaled file path (redirect output_file)
             output_file = residual_upscaled_dir + "output_" + get_lexicon_value(6, x) + ".png"
             
             # Create 2x2 black pixel image and save to the upscale dir
-            Image.fromarray(np.zeros((2, 2, 3), dtype=np.uint8), 'RGB').save(output_file)
+            Image.fromarray(np.zeros((1, 1, 3), dtype=np.uint8), 'RGB').save(output_file)
 
         else:
             # This image has things to upscale, continue normally
@@ -75,7 +99,7 @@ def residual_loop(context):
         if debug == 1:
             debug_output_file = debug_dir + "debug" + str(x + 1) + extension_type
             debug_image(block_size, f1, prediction_data, residual_data, debug_output_file)
-
+    print("Residual finished")
 
 def make_residual_image(context: Context, raw_frame: Frame, list_residual: list, list_predictive: list):
     """

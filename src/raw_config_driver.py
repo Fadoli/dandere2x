@@ -34,7 +34,7 @@ def main():
     # they ain't working as for today. TODO.
     if dir_exists(context.workspace):
         print("Deleting old workspace")
-        shutil.rmtree(context.workspace)
+        shutil.rmtree(context.workspace, ignore_errors=True)
         wait_on_delete_dir(context.workspace)
 
     # make workspace dir

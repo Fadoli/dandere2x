@@ -1,7 +1,10 @@
 from PIL import Image
+import multiprocessing
 import subprocess
 import time
 import cv2
+import sys
+import os
 
 class ProgressiveFramesExtractor():
     """
@@ -11,25 +14,81 @@ class ProgressiveFramesExtractor():
     much worse performance.
 
     It'll be running based on the context variable with dandere2x
-    
+
     """
-    def __init__(self, context):
+    def __init__(self, context, countfunc="ffmpeg", extractfunc="ffmpeg"):
+
+        self.countfunc = countfunc if countfunc in ["cv2", "ffmpeg", "ffprobe"] else exit(-1)
+        self.extractfunc = extractfunc if extractfunc in ["cv2", "ffmpeg"] else exit(-1)
+
         self.count = 1
         self.context = context
         self.cap = None
+        self.get_frames_offset = 0 # ffmpeg extracts 240 frames with -i video frame%d.jpg but reads 239 frames on video file, same with cv2 and ffprobe (239)
+
+        self.threads_count = multiprocessing.cpu_count()*1.5 # for better FFmpeg performance
         
-        #self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        #self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT)) # not accurate since this is a aproximation
+
+    def ffmpeg_filters_workaround(self): 
+
+        # applies core d2x filters to the input video, FORCES using cv2 to extract the frames
+        # and sets the output noisy video as the input for future
+
+        
+        self.extractfunc = "cv2"
+        original_video = self.context.input_file
+
+        noisy_video = self.context.workspace + "noisy.mkv"
+        
+        print("\n    PFE WORKAROUND: APPLY FILTERS BEFORE STARTED")
+
+        start = time.time()
+
+        subprocess.run([self.context.ffmpeg_dir, '-i', original_video,
+                       '-loglevel', 'panic',
+                       '-threads', str(self.threads_count),
+                       '-qscale:v:', '2',
+                       '-vf', 'noise=c1s=8:c0f=u', noisy_video])
+        
+        print("  PFE WORKAROUND: TOOK:", round(time.time() - start, 2))
+
+        self.context.input_file = noisy_video
+
+        self.load()
+
+        return self.context.input_file
 
 
     def load(self):
         self.cap = cv2.VideoCapture(self.context.input_file)
 
+    
+    # For easier changes in the code
+    # set the function to use here 
 
-    # TODO: since the python-opencv CAP_PROP_FRAME_COUNT is a estimation,
-    # we can't rely on counting the dir len() when in minimal_disk mode,
-    # so hope reading these frames without saving them but writing afterwards
-    # gives a performance increase?
     def count_frames(self):
+        if self.countfunc == "ffmpeg":
+            return self.count_frames_ffmpeg()
+        elif self.countfunc == "ffprobe":
+            return self.count_frames_ffprobe()
+        else:
+            return self.count_frames_cv2
+
+
+    def next_frame(self):
+        if self.extractfunc == "ffmpeg":
+            self.next_frame_ffmpeg()
+        elif self.extractfunc == "cv2":
+            self.next_frame_cv2()
+
+
+    # # #  # # #  # # #  # # #
+
+
+    def count_frames_cv2(self):
+        
+        print("\n  PFE Counting frames old way, will take a while...")
 
         start = time.time()
 
@@ -51,37 +110,94 @@ class ProgressiveFramesExtractor():
         return self.total_frames
 
 
-    def count_frames_ffmpeg(self): # doesnt work
+    def count_frames_ffmpeg(self): # doesn't work
+
+        print("\n  PFE: Counting frames with ffmpeg, should be the fastest?...")
+
+        start = time.time()
+
+        process = subprocess.Popen([self.context.ffmpeg_dir, '-threads', str(self.threads_count),
+                                    '-i', self.context.input_file, '-map', '0:v:0', '-c', 'copy',
+                                    '-vsync', '0', '-f', 'null', '-'], stdout=subprocess.PIPE,
+                                    universal_newlines=True, stderr=subprocess.STDOUT)
+
+        for line in process.stdout:
+            if "frame" in line: # frame=  239 fps=0.0 q=-1.0 Lsize=N/A time=00:00:09.87 bitrate=N/A speed=6.39e+03x
+                line = line.replace("frame=", "")
+                line = line.split("fps")[0].replace(" ", "")
+                self.total_frames = int(line) + self.get_frames_offset
+                break
+
+        #print('\n\n\n\n')
         
-        process = subprocess.Popen([self.context.ffmpeg_dir, '-i', self.context.input_file, '-map', '0:v:0', '-c', 'copy', '-f', 'null', '-'], stdout=subprocess.PIPE)
-        process.wait()
-        stdout = process.stdout
-        print('\n\n\n\n')
-        
-        print(stdout)
+        #print(stdout)
         #self.total_frames = stdout.split("frame= ")[1].split(" ")[0]
 
-        self.total_frames = 0
+        print("\n    PFE: Finding frame count took: ", round(time.time() - start, 2), "sec")
+        print("  PFE: Total number of frames:", self.total_frames)
+
+        return self.total_frames
 
 
-    def next_frame(self):
+    def count_frames_ffprobe(self): # this is by far the preffered way
 
+        print("\n  PFE: Counting frames with ffprobe, should be fast?...")
+
+        start = time.time()
+
+        stdout = subprocess.run([self.context.ffprobe_dir, '-v', 'error', '-count_frames',
+                                 '-threads', str(self.threads_count), '-vsync', '0',
+                                 '-select_streams', 'v:0', '-show_entries', 'stream=nb_read_frames',
+                                 self.context.input_file], check=True, stdout=subprocess.PIPE).stdout
+
+        stdout = stdout.decode("utf-8")
+
+        stdout = stdout.split("\n")
+        stdout = stdout[1] # we'll get something like ['[STREAM]', 'nb_read_frames=239', '[/STREAM]', '']
+        stdout = stdout.split("=")[1] # get the number (string)
+
+        self.total_frames = int(stdout) + self.get_frames_offset
+
+        print("\n    PFE: Finding frame count took: ", round(time.time() - start, 2), "sec")
+        print("  PFE: Total number of frames:", self.total_frames)
+
+        return self.total_frames
+
+
+
+
+    def next_frame_cv2(self): # TODO need to apply core d2x filters # FIXED: FFMPEG WORKAROUND
         success, image = self.cap.read()
         
         if success:
             cv2.imwrite(self.context.input_frames_dir + "frame%s.jpg" % self.count, image, [cv2.IMWRITE_JPEG_QUALITY, 100])
             self.count += 1
 
+
+    # problem: exponentially slower?
+    # or does ffmpeg gets right on the frame we want
+    # here we can apply filters with easy though
+    def next_frame_ffmpeg(self, wait=False): # barely work
+        #if not self.count > self.total_frames + 1:
+        frame_out = self.context.input_frames_dir + "frame%s.jpg" % (self.count)
+
+        command = [self.context.ffmpeg_dir, '-loglevel', 'panic', '-i', self.context.input_file,
+                   '-threads', str(self.threads_count), '-vsync', '0',
+                   '-vf', 'select=eq(n\,%s), noise=c1s=8:c0f=a' % (self.count - 1),
+                   '-vframes', '1', '-q:v', '1', '-qscale:v', '2', 
+                   frame_out]
+
+        process = subprocess.Popen(command)
         
-    def next_frame_ffmpeg(): # barely work
+        if wait:
+            process.wait()
 
-        frame_out = self.context.input_frames_dir + "frame%s.jpg" % self.count
-
-        process = subprocess.Popen([self.context.ffmpeg_dir, '-loglevel', 'panic', '-i', self.context.input_file,  '-vf', 'select=eq(n\,%s)' % self.count, '-vframes', '1', '-q:v', '1', '-qscale:v:', '2', frame_out])#, stdout=subprocess.PIPE)
-        process.wait()
+        else:
+            # can hang OS if used to much because RAM
+            pass
 
         self.count += 1
-        
+            
 
 
 """

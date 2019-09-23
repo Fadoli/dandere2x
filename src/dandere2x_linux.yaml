@@ -1,8 +1,8 @@
 dandere2x:
     usersettings:
 
-        input_file: ../workspace/yn_moving.mkv # the input file to upscale if ran on raw_config drivers
-        output_file: ../workspace/yn_moving2x.mkv #the output ot the upscaled video file.
+        input_file: ../workspace/sample.mkv # the input file to upscale if ran on raw_config drivers
+        output_file: ../workspace/out.mkv #the output ot the upscaled video file.
 
         waifu2x_type: vulkan # the waifu2x client to use, since this is the Linux config file, the supported one are: vulkan, vulkan_legacy (snap), converter_cpp
     
@@ -14,12 +14,12 @@ dandere2x:
     
     developer_settings:
 
-        debug: true # if d2x will write debug frames into workspace/debug, really fun to watch
-        status: false # enable or disable status
+        debug: false # if d2x will write debug frames into workspace/debug, really fun to watch
+        status: true # enable or disable status
 
         workspace: ../workspace/default/ # path to the workspace folder (lots of files will be written here)
         dandere2x_cpp_dir: ../externals/dandere2x_cpp # path to dandere2x_cpp binary file
-        workspace_use_temp: false
+        workspace_use_temp: false #
         
 
         # WARNING: FFMPEG PIPE ENCODING DEFAULTS TO AN MP4 FILE FOR NOW, DON'T FORGET TO SET THE OUTPUT_FILE TO AN MP4!!!
@@ -31,8 +31,14 @@ dandere2x:
 
         # WARNING: THIS ENABLES FFMPEG_PIPE_ENCODING SINCE IT DOESN'T MAKE SENSE SAVING DISK BUT WRITING MERGED FILES
 
-        minimal_disk_usage: false # deletes already used files on workspace dir and limits to max_frames_ahead
-        max_frames_ahead: 10
+        minimal_disk_usage: true # deletes already used files on workspace dir and limits to max_frames_ahead
+        max_frames_ahead: 20 # more like batches of frames ahead but not really
+
+        # # # # #
+
+        # WARNING: THIS OVERRIDES WORKSPACE_USE_TEMP
+
+        ramdisk_mode: false # sets most folders of workspace into /workspace/ramdisk/, leave nosound untouched and debug
 
         # # # # #
         
@@ -40,7 +46,7 @@ dandere2x:
             realtime_encoding_delete_files: false
             realtime_encoding_enabled: true
             realtime_encoding_seconds_per_video: 1
-        
+
         
         gui_delete_workspace_after: false
         extension_type: .jpg
@@ -102,7 +108,7 @@ waifu2x_ncnn_vulkan:
         -gpu: null
         -load-proc-save_threads: null
         -model-path: null
-        -t: 256 # note: if you get black images try lowering this tile argument to some lower value.
+        -t: 100 # note: if you get black images try lowering this tile argument to some lower value.
         -verbose: null
 
 
