@@ -214,8 +214,8 @@ def merge_loop(context: Context, PFEOBJ = None):
 
             prediction_data_file_r = pframe_data_dir + "pframe_" + index_to_remove + ".txt"
             residual_data_file_r = residual_data_dir + "residual_" + index_to_remove + ".txt"
-            residual_image_r_1 = residual_images_dir + "output_" + get_lexicon_value(6, x) + residual_image_ext_r # delete the one we just used to not be w2x again
-            residual_image_r_2 = residual_images_dir + "output_" + get_lexicon_value(6, x - 15) + residual_image_ext_r # fail safe if any gets not deleted
+            #residual_image_r_1 = residual_images_dir + "output_" + get_lexicon_value(6, x) + residual_image_ext_r # delete the one we just used to not be w2x again
+            #residual_image_r_2 = residual_images_dir + "output_" + get_lexicon_value(6, x - 15) + residual_image_ext_r # fail safe if any gets not deleted
             correction_data_file_r = correction_data_dir + "correction_" + index_to_remove + ".txt"
             fade_data_file_r = fade_data_dir + "fade_" + index_to_remove + ".txt"
             merged_image_r = merged_dir + "merged_" + index_to_remove + extension_type
@@ -229,9 +229,9 @@ def merge_loop(context: Context, PFEOBJ = None):
             residual_upscaled_r = upscaled_dir + "output_" + get_lexicon_value(6, int(index_to_remove)) + ".png"
             
             # mark them
-            remove = [prediction_data_file_r, residual_data_file_r, residual_image_r_1, residual_image_r_2, correction_data_file_r,
-                      fade_data_file_r, merged_image_r, input_image_r, upscaled_file_r, compressed_file_static_r,
-                      compressed_file_moving_r, residual_upscaled_r]
+            remove = [prediction_data_file_r, residual_data_file_r, # residual_image_r_1, residual_image_r_2, 
+                      correction_data_file_r, fade_data_file_r, merged_image_r, input_image_r,
+                      upscaled_file_r, compressed_file_static_r, compressed_file_moving_r, residual_upscaled_r]
             
             # remove
             for item in remove:
@@ -278,7 +278,7 @@ def merge_loop(context: Context, PFEOBJ = None):
 
 
     if ffmpeg_pipe_encoding:
-        print("Closing FFMPEG")
+        print("\n  Closing FFMPEG as encode finished")
         ffmpeg_pipe_subprocess.stdin.close()
         ffmpeg_pipe_subprocess.wait()
         

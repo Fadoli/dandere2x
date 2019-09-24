@@ -179,7 +179,7 @@ class Waifu2xVulkan(threading.Thread):
         # while there are pictures that have yet to be upscaled, keep calling the upscale command
         while upscaled_names:
 
-            logger.info("Frames remaining before batch: " + str(len(upscaled_names)))
+            logger.info("Frames remaining before batch: " + str(len(upscaled_names)) + ', '.join(upscaled_names))
 
             console_output.write(str(exec_command))
             subprocess.call(exec_command, shell=False, stderr=console_output, stdout=console_output)
@@ -188,8 +188,8 @@ class Waifu2xVulkan(threading.Thread):
 
             for name in upscaled_names[::-1]:
                 if os.path.exists(self.residual_upscaled_dir + name):
-                    
-                    diff_file = self.residual_images_dir + name.replace(".png", ".jpg")
+
+                    diff_file = self.residual_images_dir + name.replace(".png", "") # removing .png because residuals.py w2x-vulkan workaround
 
                     # Since we're generating 2x2 black images for non "differentiable" frames in residuals.py
                     # We must not delete a non existing file otherwise will raise errors

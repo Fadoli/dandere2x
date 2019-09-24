@@ -5,8 +5,9 @@
 //    available at: https://www.gnu.org/licenses/gpl-3.0.txt
 
 #include "Dandere2xUtils.h"
-#include <chrono>
-#include <thread>
+#include <chrono> // for sleeping
+#include <thread> // for zzzzzzzz
+#include <math.h> // for remainder
 
 
 char dandere2x::separator() {
@@ -42,7 +43,7 @@ void dandere2x::wait_for_file(const std::string &name) {
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         count++;
-        if (count / 10 == 0) {
+        if (std::remainder(count, 10) == 0) {
             std::cout << "waiting for file more than 1 sec " << name << std::endl;
             count = 0;
         }

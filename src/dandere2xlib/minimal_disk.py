@@ -110,7 +110,7 @@ class ProgressiveFramesExtractor():
         return self.total_frames
 
 
-    def count_frames_ffmpeg(self): # doesn't work
+    def count_frames_ffmpeg(self):
 
         print("\n  PFE: Counting frames with ffmpeg, should be the fastest?...")
 

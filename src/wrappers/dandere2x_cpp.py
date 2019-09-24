@@ -22,7 +22,7 @@ class Dandere2xCppWrapper(threading.Thread):
         self.extension_type = context.extension_type
         self.residual_images_dir = context.residual_images_dir
         self.log_dir = context.log_dir
-        self.ramdisk_if_enabled = context.ramdisk_if_enabled
+        self.processing_subdir = context.processing_subdir
 
         threading.Thread.__init__(self, daemon=True)
 
@@ -30,7 +30,7 @@ class Dandere2xCppWrapper(threading.Thread):
         logger = logging.getLogger(__name__)
 
         d2x_cpp_exec = [self.dandere2x_cpp_dir,
-                        self.workspace + self.ramdisk_if_enabled,
+                        self.workspace + self.processing_subdir,
                         str(self.frame_count),
                         str(self.block_size),
                         str(self.step_size),

@@ -17,12 +17,20 @@
 
 
 
-DIRECTORY=$(cd `dirname $0` && pwd)
+DIRECTORY=$(cd `dirname $0` && pwd) &&
 
-cd $DIRECTORY
+cd $DIRECTORY &&
 
-mkdir -p workspace/default/ramdisk
+rm -r ./workspace/default/processing/* ; # remove its contents if any
 
-cd workspace/default
+mkdir -p ./workspace/default/processing && # create it fail-safe
 
-mount -t tmpfs -o size=256m tmpfs ./ramdisk/
+cd workspace/default &&
+
+mount -t tmpfs -o size=256m tmpfs ./processing/
+
+echo "[Tremx]: Ignore no such file or directory if any, sudo rm -rf is dangerous"
+
+# to unmount the ramdisk either reboot the system
+# or get a terminal in the workspace/default/
+# and sudo umount ./ramdisk

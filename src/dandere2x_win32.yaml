@@ -36,12 +36,6 @@ dandere2x:
 
         # # # # #
 
-        # WARNING: THIS OVERRIDES WORKSPACE_USE_TEMP
-
-        ramdisk_mode: false # sets most folders of workspace into /workspace/ramdisk/, leave nosound untouched and debug
-
-        # # # # #
-
         realtime_encoding: # this option each seconds_per_video encodes the merged images into a small video file for the final merge afterwards
             realtime_encoding_delete_files: false
             realtime_encoding_enabled: true

@@ -60,7 +60,11 @@ def residual_loop(context):
                 break
 
             except IndexError:
-                #print("insisted loading", x) # debugging purposes
+                logger.info("Residual IndexError, insisted loading" + str(x))
+                time.sleep(0.5)
+
+            except OSError:
+                logger.info("Residual OSError, insisted loading" + str(x))
                 time.sleep(0.5)
 
 
@@ -99,7 +103,6 @@ def residual_loop(context):
         if debug == 1:
             debug_output_file = debug_dir + "debug" + str(x + 1) + extension_type
             debug_image(block_size, f1, prediction_data, residual_data, debug_output_file)
-    print("Residual finished")
 
 def make_residual_image(context: Context, raw_frame: Frame, list_residual: list, list_predictive: list):
     """

@@ -71,36 +71,29 @@ class Context:
         # # # # # # #
 
         self.workspace = self.config_file['dandere2x']['developer_settings']['workspace']
-        self.workspace_use_temp = self.config_file['dandere2x']['developer_settings']['workspace_use_temp'] # disable this if ramdisk mode
+        self.workspace_use_temp = self.config_file['dandere2x']['developer_settings']['workspace_use_temp']
 
-        self.ramdisk_mode = self.config_file['dandere2x']['developer_settings']['ramdisk_mode']
-
-        if self.ramdisk_mode:
-            self.ramdisk_if_enabled = "ramdisk%s" % os.path.sep
-            self.workspace_use_temp = False
-        else:
-            self.ramdisk_if_enabled = ""
+        self.processing_subdir = "processing" + os.path.sep
         
         # if we're using a temporary workspace, assign workspace to be in the temp folder
-        # disabled if ramdisk_mode
         if self.workspace_use_temp:
             self.workspace = os.path.join(pathlib.Path(tempfile.gettempdir()), 'dandere2x') + os.path.sep
 
         # setup directories
-        self.input_frames_dir = self.workspace + self.ramdisk_if_enabled + "inputs" + os.path.sep
-        self.residual_images_dir = self.workspace + self.ramdisk_if_enabled + "residual_images" + os.path.sep
-        self.residual_upscaled_dir = self.workspace + self.ramdisk_if_enabled + "residual_upscaled" + os.path.sep
-        self.residual_data_dir = self.workspace + self.ramdisk_if_enabled + "residual_data" + os.path.sep
-        self.pframe_data_dir = self.workspace + self.ramdisk_if_enabled + "pframe_data" + os.path.sep
-        self.correction_data_dir = self.workspace + self.ramdisk_if_enabled + "correction_data" + os.path.sep
-        self.merged_dir = self.workspace + self.ramdisk_if_enabled + "merged" + os.path.sep
-        self.fade_data_dir = self.workspace + self.ramdisk_if_enabled + "fade_data" + os.path.sep
+        self.input_frames_dir = self.workspace + self.processing_subdir + "inputs" + os.path.sep
+        self.residual_images_dir = self.workspace + self.processing_subdir + "residual_images" + os.path.sep
+        self.residual_upscaled_dir = self.workspace + self.processing_subdir + "residual_upscaled" + os.path.sep
+        self.residual_data_dir = self.workspace + self.processing_subdir + "residual_data" + os.path.sep
+        self.pframe_data_dir = self.workspace + self.processing_subdir + "pframe_data" + os.path.sep
+        self.correction_data_dir = self.workspace + self.processing_subdir + "correction_data" + os.path.sep
+        self.merged_dir = self.workspace + self.processing_subdir + "merged" + os.path.sep
+        self.fade_data_dir = self.workspace + self.processing_subdir + "fade_data" + os.path.sep
         self.debug_dir = self.workspace + "debug" + os.path.sep
         self.log_dir = self.workspace + "logs" + os.path.sep
-        self.compressed_static_dir = self.workspace + self.ramdisk_if_enabled + "compressed_static" + os.path.sep
-        self.compressed_moving_dir = self.workspace + self.ramdisk_if_enabled + "compressed_moving" + os.path.sep
+        self.compressed_static_dir = self.workspace + self.processing_subdir + "compressed_static" + os.path.sep
+        self.compressed_moving_dir = self.workspace + self.processing_subdir + "compressed_moving" + os.path.sep
         self.encoded_dir = self.workspace + "encoded" + os.path.sep
-        self.temp_image_folder = self.workspace + self.ramdisk_if_enabled + "temp_image_folder" + os.path.sep
+        self.temp_image_folder = self.workspace + self.processing_subdir + "temp_image_folder" + os.path.sep
 
         # put all the directories that need to be created into a list for creation / deleting.
         self.directories = {self.workspace,
