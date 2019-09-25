@@ -43,6 +43,7 @@ class PiperSaverDeleter():
         self.extension_type = self.context.extension_type
         self.ffmpeg_pipe_encoding = self.context.ffmpeg_pipe_encoding
         self.realtime_encoding_enabled = self.context.realtime_encoding_enabled
+        self.waifu2x_type = self.context.waifu2x_type
 
         if self.ffmpeg_pipe_encoding:
             self.setup_ffmpeg_pipe_encode()
@@ -212,7 +213,7 @@ class PiperSaverDeleter():
         fade_data_file_r = self.fade_data_dir + "fade_" + index_to_remove + ".txt"
 
         input_image_r = self.input_frames_dir + "frame" + index_to_remove + ".jpg"
-        #upscaled_file_r = self.upscaled_dir + "output_" + get_lexicon_value(6, int(remove_before)) + ".png"
+        
         compressed_file_static_r = self.compressed_static_dir + "compressed_" + index_to_remove + ".jpg"
         compressed_file_moving_r = self.compressed_moving_dir + "compressed_" + index_to_remove + ".jpg"
         
@@ -220,6 +221,10 @@ class PiperSaverDeleter():
         remove = [prediction_data_file_r, residual_data_file_r, correction_data_file_r,
                   fade_data_file_r, input_image_r, #upscaled_file_r,
                   compressed_file_static_r, compressed_file_moving_r]
+    
+        if self.waifu2x_type == "vulkan":
+            upscaled_file_r = self.upscaled_dir + "output_" + get_lexicon_value(6, int(remove_before)) + ".png"
+            remove.append(upscaled_file_r)
 
         # remove
         threading.Thread(target=self.remove_unused_list, args=(remove,), daemon=True).start()
@@ -252,7 +257,7 @@ class PiperSaverDeleter():
 
 
 
-def merge_loop(context: Context, PFEOBJ = None):
+def merge_loop(context: Context, d2x_main, PFEOBJ = None):
     """
     Call the 'make_merge_image' method for every image that needs to be upscaled.
 
@@ -342,7 +347,9 @@ def merge_loop(context: Context, PFEOBJ = None):
         # Ensure the file is loaded for background_frame_load. If we're on the last frame, simply ignore this section
         # Because the frame_count + 1 does not exist.
 
+    d2x_main.stop_upscaler = True
     corelogic.finish()
+    
 
 
 

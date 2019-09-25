@@ -82,6 +82,7 @@ class Context:
         # setup directories
         self.input_frames_dir = self.workspace + self.processing_subdir + "inputs" + os.path.sep
         self.residual_images_dir = self.workspace + self.processing_subdir + "residual_images" + os.path.sep
+        self.residual_for_upscale = self.workspace + self.processing_subdir + "residual_for_upscale" + os.path.sep
         self.residual_upscaled_dir = self.workspace + self.processing_subdir + "residual_upscaled" + os.path.sep
         self.residual_data_dir = self.workspace + self.processing_subdir + "residual_data" + os.path.sep
         self.pframe_data_dir = self.workspace + self.processing_subdir + "pframe_data" + os.path.sep
@@ -100,6 +101,7 @@ class Context:
                             self.input_frames_dir,
                             self.correction_data_dir,
                             self.residual_images_dir,
+                            self.residual_for_upscale,
                             self.residual_upscaled_dir,
                             self.merged_dir,
                             self.residual_data_dir,

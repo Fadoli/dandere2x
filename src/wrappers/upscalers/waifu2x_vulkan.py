@@ -5,8 +5,10 @@ from context import Context
 import subprocess
 import threading
 import logging
+import shutil
 import copy
 import time
+import glob
 import os
 
 
@@ -15,17 +17,19 @@ class Waifu2xVulkan(threading.Thread):
     The waifu2x-vulkan wrapper, with custom functions written that are specific for dandere2x to work.
     """
 
-    def __init__(self, context: Context):
+    def __init__(self, context: Context, d2x_main):
         # load context
         self.frame_count = context.frame_count
         self.waifu2x_ncnn_vulkan_file_path = context.waifu2x_ncnn_vulkan_file_path
         self.waifu2x_ncnn_vulkan_path = context.waifu2x_ncnn_vulkan_path
         self.residual_images_dir = context.residual_images_dir
+        self.residual_for_upscale = context.residual_for_upscale
         self.residual_upscaled_dir = context.residual_upscaled_dir
         self.noise_level = context.noise_level
         self.scale_factor = context.scale_factor
         self.workspace = context.workspace
         self.minimal_disk_processing = context.minimal_disk_processing
+        self.max_frames_ahead = context.max_frames_ahead
         self.context = context
 
         self.waifu2x_vulkan_upscale_frame = [self.waifu2x_ncnn_vulkan_file_path,
@@ -41,6 +45,8 @@ class Waifu2xVulkan(threading.Thread):
             self.waifu2x_vulkan_upscale_frame.append(element)
 
         self.waifu2x_vulkan_upscale_frame.extend(["-o", "[output_file]"])
+
+        self.d2x_main = d2x_main
 
         threading.Thread.__init__(self)
         logging.basicConfig(filename=self.workspace + 'waifu2x.log', level=logging.INFO)
@@ -70,6 +76,18 @@ class Waifu2xVulkan(threading.Thread):
         subprocess.call(exec_command, shell=False, stderr=console_output, stdout=console_output)
         console_output.close()
 
+     
+    def move_files_dir(self, src, dst):
+        for file_path in glob.glob(src + os.path.sep + '*'):
+            shutil.move(file_path, dst)
+
+    def delete_dir_contents(self, dir_files):
+        folder = dir_files
+        for item in os.listdir(folder):
+            file_path = os.path.join(folder, item)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+
 
     def run(self):
         """
@@ -98,70 +116,33 @@ class Waifu2xVulkan(threading.Thread):
 
         logger = logging.getLogger(__name__)
 
-        residual_images_dir = self.context.residual_images_dir
-        residual_upscaled_dir = self.context.residual_upscaled_dir
         exec_command = copy.copy(self.waifu2x_vulkan_upscale_frame)
 
-        console_output = open(self.context.log_dir + "vulkan_upscale_frames.txt", "w")
+        with open(self.context.log_dir + "vulkan_upscale_frames.txt", "w") as console_output:
 
-        # replace the exec command with the files we're concerned with
-        for x in range(len(exec_command)):
-            if exec_command[x] == "[input_file]":
-                exec_command[x] = residual_images_dir
+            # replace the exec command with the files we're concerned with
+            for x in range(len(exec_command)):
+                if exec_command[x] == "[input_file]":
+                    exec_command[x] = self.residual_for_upscale
 
-            if exec_command[x] == "[output_file]":
-                exec_command[x] = residual_upscaled_dir
+                if exec_command[x] == "[output_file]":
+                    exec_command[x] = self.residual_upscaled_dir
 
-        # we need to os.chdir to set the directory or else waifu2x-vulkan won't work.
-        os.chdir(self.waifu2x_ncnn_vulkan_path)
+            # we need to os.chdir to set the directory or else waifu2x-vulkan won't work.
+            os.chdir(self.waifu2x_ncnn_vulkan_path)
 
-        logger.info("waifu2x_vulkan session")
-        logger.info(exec_command)
+            logger.info("waifu2x_vulkan session")
+            logger.info(exec_command)
 
-        # make a list of names that will eventually (past or future) be upscaled
-        upscaled_names = []
-        for x in range(1, self.frame_count):
-            upscaled_names.append("output_" + get_lexicon_value(6, x) + ".png")
-
-
-        count_removed = 0
-
-        # remove from the list images that have already been upscaled
-        for name in upscaled_names[::-1]:
-            if os.path.isfile(self.residual_upscaled_dir + name):
-                upscaled_names.remove(name)
-                count_removed += 1
+            while not self.d2x_main.stop_upscaler:
                 
-        if count_removed:
-            logger.info("Already have " + str(count_removed) + " upscaled")
+                # don't mix up already upscaled/pending residual files
+                self.move_files_dir(self.residual_images_dir, self.residual_for_upscale)
 
-        # while there are pictures that have yet to be upscaled, keep calling the upscale command
-        while upscaled_names:
+                # if there's at least a bit of files to process in current "batch"
+                #                                               because of 2x2 hack
+                if len(os.listdir(self.residual_for_upscale)) + len(os.listdir(self.residual_upscaled_dir)) >= self.max_frames_ahead/2:
+                    subprocess.call(exec_command, shell=False, stderr=console_output, stdout=console_output)
 
-            logger.info("Frames remaining before batch: " + str(len(upscaled_names)))
-
-            console_output.write(str(exec_command))
-            subprocess.call(exec_command, shell=False, stderr=console_output, stdout=console_output)
-
-            for name in upscaled_names[::-1]:
-
-                residual_upscaled = self.residual_upscaled_dir + name
-
-                if os.path.exists(residual_upscaled):
-
-                    diff_file = self.residual_images_dir + name.replace(".png", "") # removing .png because residuals.py w2x-vulkan workaround
-
-                    # Since we're generating 2x2 black images for non "differentiable" frames in residuals.py
-                    # We must not delete a non existing file otherwise will raise errors
-
-                    if os.path.exists(diff_file):
-                        os.remove(diff_file)
-
-                    if self.minimal_disk_processing:
-                        os.remove(residual_upscaled)
-
-                    upscaled_names.remove(name)
-            
-            
-
-        console_output.close()
+                self.delete_dir_contents(self.residual_for_upscale)
+                

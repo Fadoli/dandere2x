@@ -144,7 +144,8 @@ class Dandere2x:
             self.context.update_frame_count()
 
         # Assign the waifu2x object to whatever waifu2x we're using
-        self.waifu2x = self.get_waifu2x_class(self.context.waifu2x_type)
+        self.waifu2x = self.get_waifu2x_class(self.context.waifu2x_type, self)
+        self.stop_upscaler = False
 
         # Upscale the first file (the genesis file is treated different in Dandere2x)
         print("\n  Upscaling the first frame.. We literally cannot continue if it doesn't")
@@ -183,7 +184,7 @@ class Dandere2x:
 
         self.jobs.append(threading.Thread(target=compress_frames, args=(self.context,), daemon=True)) # compress_frames_thread
         self.jobs.append(Dandere2xCppWrapper(self.context)) # dandere2xcpp_thread
-        self.jobs.append(threading.Thread(target=merge_loop, args=(self.context, self.PFE,), daemon=True)) # merge_thread
+        self.jobs.append(threading.Thread(target=merge_loop, args=(self.context, self, self.PFE), daemon=True)) # merge_thread
         self.jobs.append(threading.Thread(target=residual_loop, args=(self.context,), daemon=True)) # residual_thread
         self.jobs.append(threading.Thread(target=print_status, args=(self.context, self), daemon=True)) # status_thread
 
@@ -204,7 +205,7 @@ class Dandere2x:
 
         self.context.logger.info("Threaded Processes Finished succcesfully")
 
-    def get_waifu2x_class(self, name: str):
+    def get_waifu2x_class(self, name: str, this_file_object):
 
         if name == "caffe":
             return Waifu2xCaffe(self.context)
@@ -213,7 +214,7 @@ class Dandere2x:
             return Waifu2xConverterCpp(self.context)
 
         elif name == "vulkan":
-            return Waifu2xVulkan(self.context)
+            return Waifu2xVulkan(self.context, this_file_object)
 
         elif name == "vulkan_legacy":
             return Waifu2xVulkanLegacy(self.context)
