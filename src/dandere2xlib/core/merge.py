@@ -212,19 +212,14 @@ class PiperSaverDeleter():
         fade_data_file_r = self.fade_data_dir + "fade_" + index_to_remove + ".txt"
 
         input_image_r = self.input_frames_dir + "frame" + index_to_remove + ".jpg"
-        upscaled_file_r = self.upscaled_dir + "output_" + get_lexicon_value(6, int(remove_before)) + ".png"
+        #upscaled_file_r = self.upscaled_dir + "output_" + get_lexicon_value(6, int(remove_before)) + ".png"
         compressed_file_static_r = self.compressed_static_dir + "compressed_" + index_to_remove + ".jpg"
         compressed_file_moving_r = self.compressed_moving_dir + "compressed_" + index_to_remove + ".jpg"
         
         # "mark" them
         remove = [prediction_data_file_r, residual_data_file_r, correction_data_file_r,
-                  fade_data_file_r, input_image_r, upscaled_file_r,
+                  fade_data_file_r, input_image_r, #upscaled_file_r,
                   compressed_file_static_r, compressed_file_moving_r]
-        
-        if self.ffmpeg_pipe_encoding:
-            merged_image_r = self.merged_dir + "merged_" + index_to_remove + self.extension_type
-            remove.append(merged_image_r)
-            print("removing merged:", merged_image_r)
 
         # remove
         threading.Thread(target=self.remove_unused_list, args=(remove,), daemon=True).start()

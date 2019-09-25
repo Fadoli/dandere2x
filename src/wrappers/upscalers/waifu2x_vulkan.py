@@ -25,6 +25,7 @@ class Waifu2xVulkan(threading.Thread):
         self.noise_level = context.noise_level
         self.scale_factor = context.scale_factor
         self.workspace = context.workspace
+        self.minimal_disk_processing = context.minimal_disk_processing
         self.context = context
 
         self.waifu2x_vulkan_upscale_frame = [self.waifu2x_ncnn_vulkan_file_path,
@@ -69,46 +70,6 @@ class Waifu2xVulkan(threading.Thread):
         subprocess.call(exec_command, shell=False, stderr=console_output, stdout=console_output)
         console_output.close()
 
-    def fix_names_all(self):
-        """
-        Waifu2x-ncnn-vulkan will accept a file as "file.jpg" and output as "file.jpg.png".
-
-        Unfortunately, dandere2x wouldn't recognize this, so this function renames each name to the correct naming
-        convention. This function will iteratiate through every file needing to be upscaled waifu2x-ncnn-vulkan,
-        and change it's name after it's done saving
-
-        Comments:
-
-        - There's a really complicated try / except that exists because, even though a file may exist,
-          the file handle may still be used by waifu2x-ncnn-vulkan (it hasn't released it yet). As a result,
-          we need to try / except it until it's released, allowing us to rename it.
-
-        """
-
-        #file_names = []
-        #for x in range(1, self.frame_count):
-        #    file_names.append("output_" + get_lexicon_value(6, x))
-
-
-        #while True:
-        file_names = os.listdir(self.residual_upscaled_dir)
-
-        for file_to_fix in file_names: # linear speed decrease doing this but whatever
-            if file_to_fix.endswith(".jpg.png"):
-                dirty_name = self.residual_upscaled_dir + file_to_fix
-                clean_name = self.residual_upscaled_dir + file_to_fix.replace(".jpg.png", ".png")
-
-                #wait_on_either_file(clean_name, dirty_name)
-
-                #time.sleep(0.2) # potential fix in waiting for the file for being written to disk?
-            
-                while file_exists(dirty_name):
-                    try:
-                        rename_file(dirty_name, clean_name)
-                        
-                    except PermissionError:
-                        pass
-        #time.sleep(1)
 
     def run(self):
         """
@@ -162,8 +123,6 @@ class Waifu2xVulkan(threading.Thread):
         for x in range(1, self.frame_count):
             upscaled_names.append("output_" + get_lexicon_value(6, x) + ".png")
 
-        #fix_names_forever_thread = threading.Thread(target=self.fix_names_all, daemon=True)
-        #fix_names_forever_thread.start()
 
         count_removed = 0
 
@@ -172,7 +131,7 @@ class Waifu2xVulkan(threading.Thread):
             if os.path.isfile(self.residual_upscaled_dir + name):
                 upscaled_names.remove(name)
                 count_removed += 1
-
+                
         if count_removed:
             logger.info("Already have " + str(count_removed) + " upscaled")
 
@@ -184,10 +143,11 @@ class Waifu2xVulkan(threading.Thread):
             console_output.write(str(exec_command))
             subprocess.call(exec_command, shell=False, stderr=console_output, stdout=console_output)
 
-            #self.fix_names_all()
-
             for name in upscaled_names[::-1]:
-                if os.path.exists(self.residual_upscaled_dir + name):
+
+                residual_upscaled = self.residual_upscaled_dir + name
+
+                if os.path.exists(residual_upscaled):
 
                     diff_file = self.residual_images_dir + name.replace(".png", "") # removing .png because residuals.py w2x-vulkan workaround
 
@@ -196,6 +156,9 @@ class Waifu2xVulkan(threading.Thread):
 
                     if os.path.exists(diff_file):
                         os.remove(diff_file)
+
+                    if self.minimal_disk_processing:
+                        os.remove(residual_upscaled)
 
                     upscaled_names.remove(name)
             
