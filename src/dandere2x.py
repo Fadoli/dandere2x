@@ -115,7 +115,7 @@ class Dandere2x:
         # TODO: check every setting valid? any waifu2x client configured?
 
         # Extract all the frames from source video
-        if self.context.minimal_disk_usage:
+        if self.context.minimal_disk_processing:
             # minimal-disk we only write from N to N + MaxAhead frames "simultaneously"
 
             max_frames_ahead = self.context.max_frames_ahead

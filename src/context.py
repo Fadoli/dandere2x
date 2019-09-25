@@ -141,7 +141,7 @@ class Context:
         self.status = self.config_file['dandere2x']['developer_settings']['status']
 
         # Minimal Disk Usase. NOTE: THIS ENABLES FFMPEG_PIPING
-        self.minimal_disk_usage = self.config_file['dandere2x']['developer_settings']['minimal_disk_usage']
+        self.minimal_disk_processing = self.config_file['dandere2x']['developer_settings']['minimal_disk_processing']
         self.max_frames_ahead = self.config_file['dandere2x']['developer_settings']['max_frames_ahead']
 
         # FFMPEG Pipe Encoding, NOTE: THIS OVERRIDES REALTIME ENCODING
@@ -151,20 +151,14 @@ class Context:
         self.nosound_file = os.path.join(self.workspace, "nosound") # missing an extension, will set it in a few
 
 
-        if self.minimal_disk_usage:
+        if self.minimal_disk_processing:
             # makes no sense talking about minimal
             # disk usage without piping
-            self.ffmpeg_pipe_encoding = True
+            #self.ffmpeg_pipe_encoding = True
+            pass
             
 
-        if not self.ffmpeg_pipe_encoding:
-            # Real Time Encoding, traditional way
-            self.realtime_encoding_enabled = self.config_file['dandere2x']['developer_settings']['realtime_encoding']['realtime_encoding_enabled']
-            self.realtime_encoding_delete_files = self.config_file['dandere2x']['developer_settings']['realtime_encoding']['realtime_encoding_delete_files']
-            self.realtime_encoding_seconds_per_video = \
-            self.config_file['dandere2x']['developer_settings']['realtime_encoding']['realtime_encoding_seconds_per_video']
-
-        else:
+        if self.ffmpeg_pipe_encoding:
             # disable traditional "RTE" because we're piping
             self.realtime_encoding_enabled = False
             
@@ -179,6 +173,15 @@ class Context:
             # add the extension to nosound file
             self.nosound_file_ext = ".mkv" if not pipe_ext in supported_formats else pipe_ext
             self.nosound_file += self.nosound_file_ext
+            
+        else:
+            # Real Time Encoding, traditional way
+            self.realtime_encoding_enabled = self.config_file['dandere2x']['developer_settings']['realtime_encoding']['realtime_encoding_enabled']
+            self.realtime_encoding_delete_files = self.config_file['dandere2x']['developer_settings']['realtime_encoding']['realtime_encoding_delete_files']
+            self.realtime_encoding_seconds_per_video = \
+            self.config_file['dandere2x']['developer_settings']['realtime_encoding']['realtime_encoding_seconds_per_video']
+
+
 
 
         ##################

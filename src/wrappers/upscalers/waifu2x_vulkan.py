@@ -179,7 +179,7 @@ class Waifu2xVulkan(threading.Thread):
         # while there are pictures that have yet to be upscaled, keep calling the upscale command
         while upscaled_names:
 
-            logger.info("Frames remaining before batch: " + str(len(upscaled_names)) + ', '.join(upscaled_names))
+            logger.info("Frames remaining before batch: " + str(len(upscaled_names)))
 
             console_output.write(str(exec_command))
             subprocess.call(exec_command, shell=False, stderr=console_output, stdout=console_output)

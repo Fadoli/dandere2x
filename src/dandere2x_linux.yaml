@@ -31,14 +31,14 @@ dandere2x:
 
         # WARNING: THIS ENABLES FFMPEG_PIPE_ENCODING SINCE IT DOESN'T MAKE SENSE SAVING DISK BUT WRITING MERGED FILES
 
-        minimal_disk_usage: true # deletes already used files on workspace dir and limits to max_frames_ahead
+        minimal_disk_processing: false # deletes already used files on workspace dir and limits to max_frames_ahead
         max_frames_ahead: 20 # more like batches of frames ahead but not really
 
         # # # # #
         
         realtime_encoding: # this option each seconds_per_video encodes the merged images into a small video file for the final merge afterwards
-            realtime_encoding_delete_files: false
             realtime_encoding_enabled: true
+            realtime_encoding_delete_files: false
             realtime_encoding_seconds_per_video: 1
 
         

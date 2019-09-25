@@ -50,9 +50,6 @@ def residual_loop(context):
 
     # for every frame in the video, create a residual_frame given the text files.
     for x in range(1, frame_count):
-        
-        
-        # TODO this sometimes gets IndexError
         while True: # was giving lots of errors with inputs nominal, insist loading then
             try:
                 f1 = Frame()
@@ -61,11 +58,11 @@ def residual_loop(context):
 
             except IndexError:
                 logger.info("Residual IndexError, insisted loading" + str(x))
-                time.sleep(0.5)
+                #time.sleep(0.05)
 
             except OSError:
                 logger.info("Residual OSError, insisted loading" + str(x))
-                time.sleep(0.5)
+                #time.sleep(0.05)
 
 
         # Load the neccecary lists to compute this iteration of residual making

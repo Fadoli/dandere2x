@@ -1,6 +1,7 @@
 from PIL import Image
 import multiprocessing
 import subprocess
+import threading
 import time
 import cv2
 import sys
@@ -62,7 +63,6 @@ class ProgressiveFramesExtractor():
 
     def load(self):
         self.cap = cv2.VideoCapture(self.context.input_file)
-
     
     # For easier changes in the code
     # set the function to use here 
@@ -70,17 +70,24 @@ class ProgressiveFramesExtractor():
     def count_frames(self):
         if self.countfunc == "ffmpeg":
             return self.count_frames_ffmpeg()
+
         elif self.countfunc == "ffprobe":
             return self.count_frames_ffprobe()
+
         else:
             return self.count_frames_cv2
 
 
     def next_frame(self):
         if self.extractfunc == "ffmpeg":
-            self.next_frame_ffmpeg()
+            threading.Thread(target=self.next_frame_ffmpeg, args=(self.count,), daemon=True).start()
+            self.count += 1
+            #self.next_frame_ffmpeg()
+
         elif self.extractfunc == "cv2":
             self.next_frame_cv2()
+            self.count += 1
+            #self.next_frame_cv2()
 
 
     # # #  # # #  # # #  # # #
@@ -116,10 +123,9 @@ class ProgressiveFramesExtractor():
 
         start = time.time()
 
-        process = subprocess.Popen([self.context.ffmpeg_dir, '-threads', str(self.threads_count),
-                                    '-i', self.context.input_file, '-map', '0:v:0', '-c', 'copy',
-                                    '-vsync', '0', '-f', 'null', '-'], stdout=subprocess.PIPE,
-                                    universal_newlines=True, stderr=subprocess.STDOUT)
+        process = subprocess.Popen([self.context.ffmpeg_dir, '-i', self.context.input_file,
+                                    '-map', '0:v:0', '-c', 'copy', '-vsync', '0', '-f', 'null', '-'], 
+                                    stdout=subprocess.PIPE, universal_newlines=True, stderr=subprocess.STDOUT)
 
         for line in process.stdout:
             if "frame" in line: # frame=  239 fps=0.0 q=-1.0 Lsize=N/A time=00:00:09.87 bitrate=N/A speed=6.39e+03x
@@ -171,19 +177,18 @@ class ProgressiveFramesExtractor():
         
         if success:
             cv2.imwrite(self.context.input_frames_dir + "frame%s.jpg" % self.count, image, [cv2.IMWRITE_JPEG_QUALITY, 100])
-            self.count += 1
 
 
     # problem: exponentially slower?
     # or does ffmpeg gets right on the frame we want
     # here we can apply filters with easy though
-    def next_frame_ffmpeg(self, wait=False): # barely work
+    def next_frame_ffmpeg(self, frameindex, wait=False): # barely work
         #if not self.count > self.total_frames + 1:
-        frame_out = self.context.input_frames_dir + "frame%s.jpg" % (self.count)
+        frame_out = self.context.input_frames_dir + "frame%s.jpg" % (frameindex)
 
         command = [self.context.ffmpeg_dir, '-loglevel', 'panic', '-i', self.context.input_file,
                    '-threads', str(self.threads_count), '-vsync', '0',
-                   '-vf', 'select=eq(n\,%s), noise=c1s=8:c0f=a' % (self.count - 1),
+                   '-vf', 'select=eq(n\,%s), noise=c1s=8:c0f=a' % (frameindex - 1),
                    '-vframes', '1', '-q:v', '1', '-qscale:v', '2', 
                    frame_out]
 
@@ -195,8 +200,6 @@ class ProgressiveFramesExtractor():
         else:
             # can hang OS if used to much because RAM
             pass
-
-        self.count += 1
             
 
 
