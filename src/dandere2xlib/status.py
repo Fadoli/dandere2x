@@ -106,7 +106,7 @@ def print_status(ctx: Context, d2x_main):
         running = no = ' '
         finished = yes = 'x'
 
-        minimal_disk_usage = yes if context.minimal_disk_usage else no
+        minimal_disk_processing = yes if context.minimal_disk_processing else no
 
         ffmpeg_pipe_encoding = yes if context.ffmpeg_pipe_encoding else no
         
@@ -173,7 +173,7 @@ def print_status(ctx: Context, d2x_main):
       Experimental/Minimal disk mode:  [{}]
 
 """.format(ffmpeg_pipe_encoding, ffmpeg_pipe_encoding_type,
-           minimal_disk_usage)
+           minimal_disk_processing)
 
     
     
@@ -185,7 +185,7 @@ def print_status(ctx: Context, d2x_main):
 
             statement = module_header + module_general + module_average
 
-            #if not context.minimal_disk_usage: # because the threads will not be distant from each other
+            #if not context.minimal_disk_processing: # because the threads will not be distant from each other
             # actually usefull in watching if the encode is done
             statement += module_main_monitor
             
