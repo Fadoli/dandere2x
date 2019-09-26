@@ -1,4 +1,4 @@
-from dandere2xlib.utils.dandere2x_utils import file_exists, get_lexicon_value, rename_file, wait_on_either_file
+from dandere2xlib.utils.dandere2x_utils import file_exists, get_lexicon_value, rename_file, wait_on_either_file, move_files_dir, delete_dir_contents
 from dandere2xlib.utils.json_utils import get_options_from_section
 from context import Context
 
@@ -76,18 +76,6 @@ class Waifu2xVulkan(threading.Thread):
         subprocess.call(exec_command, shell=False, stderr=console_output, stdout=console_output)
         console_output.close()
 
-     
-    def move_files_dir(self, src, dst):
-        for file_path in glob.glob(src + os.path.sep + '*'):
-            shutil.move(file_path, dst)
-
-    def delete_dir_contents(self, dir_files):
-        folder = dir_files
-        for item in os.listdir(folder):
-            file_path = os.path.join(folder, item)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
-
 
     def run(self):
         """
@@ -137,14 +125,14 @@ class Waifu2xVulkan(threading.Thread):
             while not self.d2x_main.stop_upscaler:
                 
                 # don't mix up already upscaled/pending residual files
-                self.move_files_dir(self.residual_images_dir, self.residual_for_upscale)
+                move_files_dir(self.residual_images_dir, self.residual_for_upscale)
 
                 # if there's at least a bit of files to process in current "batch"
                 # this worked some times but was pretty unstable, commenting
                 #if len(os.listdir(self.residual_for_upscale)) + len(os.listdir(self.residual_upscaled_dir)) >= self.max_frames_ahead/2:
                 subprocess.call(exec_command, shell=False, stderr=console_output, stdout=console_output)
 
-                self.delete_dir_contents(self.residual_for_upscale)
+                delete_dir_contents(self.residual_for_upscale)
 
                 # calm down moving and calling subprocess
                 time.sleep(0.1)

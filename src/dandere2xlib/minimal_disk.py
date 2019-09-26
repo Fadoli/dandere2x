@@ -40,7 +40,7 @@ class ProgressiveFramesExtractor():
         self.extractfunc = "cv2"
         original_video = self.context.input_file
 
-        noisy_video = self.context.workspace + "noisy.mkv"
+        noisy_video = self.context.workspace + "noisy" + self.context.output_file_ext
         
         print("\n    PFE WORKAROUND: APPLY FILTERS BEFORE STARTED")
 
@@ -131,8 +131,12 @@ class ProgressiveFramesExtractor():
             if "frame" in line: # frame=  239 fps=0.0 q=-1.0 Lsize=N/A time=00:00:09.87 bitrate=N/A speed=6.39e+03x
                 line = line.replace("frame=", "")
                 line = line.split("fps")[0].replace(" ", "")
-                self.total_frames = int(line) + self.get_frames_offset
-                break
+                try:
+                    # if for some reason we get a line that has frames but it's not the last one
+                    self.total_frames = int(line) + self.get_frames_offset
+                    break
+                except Exception:
+                    pass
 
         #print('\n\n\n\n')
         

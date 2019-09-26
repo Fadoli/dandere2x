@@ -173,8 +173,8 @@ class Context:
             pipe_ext = "." + self.output_file.split(".")[-1]
 
             # add the extension to nosound file
-            self.nosound_file_ext = ".mkv" if not pipe_ext in supported_formats else pipe_ext
-            self.nosound_file += self.nosound_file_ext
+            self.output_file_ext = ".mkv" if not pipe_ext in supported_formats else pipe_ext
+            self.nosound_file += self.output_file_ext
             
         else:
             # Real Time Encoding, traditional way

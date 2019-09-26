@@ -21,6 +21,7 @@ average_1 = 0
 average_2 = 0
 average_all = 0
 estimated_finish = 0
+estimated_finish_seconds = 0
 
 
 class ClearScreen():
@@ -32,7 +33,7 @@ class ClearScreen():
 
 
 def watch_frame():
-    global context, lexiconx, lexiconframe, percent, runs_list_size, average_1, average_2, average_all, estimated_finish
+    global context, lexiconx, lexiconframe, percent, runs_list_size, average_1, average_2, average_all, estimated_finish, estimated_finish_seconds
 
     runs_list_size = 20
 
@@ -68,7 +69,8 @@ def watch_frame():
         average_2 = round(sum(last_runs_2) / len(last_runs_2), 2)
         average_all = round(sum(every_runs) / len(every_runs), 2)
 
-        estimated_finish = str(datetime.timedelta(seconds=round((frame_count-x-1)*average_all)))
+        estimated_finish_seconds = round((frame_count-x-1)*average_all)
+        estimated_finish = str(datetime.timedelta(seconds=estimated_finish_seconds))
 
         lexiconx = get_lexicon_value(frame_count_max_char, x + 1)
         lexiconframe = get_lexicon_value(frame_count_max_char, frame_count)
@@ -90,13 +92,13 @@ def watch_frame():
 
 
 def print_status(ctx: Context, d2x_main):
-    global context, lexiconx, lexiconframe, percent, runs_list_size, average_1, average_2, average_all, estimated_finish
+    global context, lexiconx, lexiconframe, percent, runs_list_size, average_1, average_2, average_all, estimated_finish, estimated_finish_seconds
 
     context = ctx
 
     if context.status:
         
-        started = time.strftime('%X %x')
+        #started = time.strftime('%X %x')
 
         WF = threading.Thread(target=watch_frame)
         WF.start() # Watch Frame thread
@@ -178,8 +180,9 @@ def print_status(ctx: Context, d2x_main):
     
     
             module_time = """
-  Started: [{}]    Now: [{}]
-""".format(started, time.strftime('%X %x'))
+  Now: [{}]    Est. end: [{}]
+""".format(time.strftime('%X %x'),
+          (datetime.datetime.now() + datetime.timedelta(seconds=estimated_finish_seconds)).strftime('%X %x'))
             
 
 

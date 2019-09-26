@@ -120,14 +120,16 @@ class Frame:
             count += 1
             time.sleep(.1)
 
-        loaded = False
-        while not loaded:
+        while True:
             try:
                 self.load_from_string(input_string)
-                loaded = True
+                break
+
             except PermissionError:
                 logger.info("Permission Error")
-                loaded = False
+
+            except OSError:
+                logger.info("Frame OSError")
 
 
     def getres(self):

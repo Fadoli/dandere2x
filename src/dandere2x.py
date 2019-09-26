@@ -125,11 +125,10 @@ class Dandere2x:
 
             self.PFE = ProgressiveFramesExtractor(self.context) # PFE obj
 
-            self.context.input_file = self.PFE.ffmpeg_filters_workaround() # FFMPEG NOT WORKING EXTRACTING FRAMES WORKAROUND (USES CV2)
-
             #self.PFE.load() # load the video file # only if using cv2
 
             self.context.frame_count = self.PFE.count_frames() # set context frame count
+            self.context.input_file = self.PFE.ffmpeg_filters_workaround() # FFMPEG NOT WORKING EXTRACTING FRAMES WORKAROUND (USES CV2)
 
             # write frames_ahead frames
 
