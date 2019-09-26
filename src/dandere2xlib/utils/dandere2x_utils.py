@@ -175,11 +175,11 @@ def remove_file_wait(file_string: str, log=True):
         count += 1
         time.sleep(.1)
 
-def move_files_dir(self, src, dst):
+def move_files_dir(src, dst):
     for file_path in glob.glob(src + os.path.sep + '*'):
         shutil.move(file_path, dst)
 
-def delete_dir_contents(self, dir_files):
+def delete_dir_contents(dir_files):
     folder = dir_files
     for item in os.listdir(folder):
         file_path = os.path.join(folder, item)
