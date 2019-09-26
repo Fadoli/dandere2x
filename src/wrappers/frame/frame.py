@@ -126,10 +126,15 @@ class Frame:
                 break
 
             except PermissionError:
-                logger.info("Permission Error")
+                logger.info("Frame.py Permission Error")
 
             except OSError:
-                logger.info("Frame OSError")
+                logger.info("Frame.py OSError")
+            
+            except IndexError:
+                logger.info("Frame.py IndexError")
+            
+            time.sleep(0.05)
 
 
     def getres(self):
