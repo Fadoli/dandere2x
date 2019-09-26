@@ -5,9 +5,9 @@
 //    available at: https://www.gnu.org/licenses/gpl-3.0.txt
 
 #include "Dandere2xUtils.h"
-#include <chrono> // for sleeping
-#include <thread> // for zzzzzzzz
-#include <math.h> // for remainder
+#include <chrono>
+#include <thread>
+#include <math.h>
 
 
 char dandere2x::separator() {

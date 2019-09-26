@@ -140,9 +140,11 @@ class Waifu2xVulkan(threading.Thread):
                 self.move_files_dir(self.residual_images_dir, self.residual_for_upscale)
 
                 # if there's at least a bit of files to process in current "batch"
-                #                                               because of 2x2 hack
-                if len(os.listdir(self.residual_for_upscale)) + len(os.listdir(self.residual_upscaled_dir)) >= self.max_frames_ahead/2:
-                    subprocess.call(exec_command, shell=False, stderr=console_output, stdout=console_output)
+                # this worked some times but was pretty unstable, commenting
+                #if len(os.listdir(self.residual_for_upscale)) + len(os.listdir(self.residual_upscaled_dir)) >= self.max_frames_ahead/2:
+                subprocess.call(exec_command, shell=False, stderr=console_output, stdout=console_output)
 
                 self.delete_dir_contents(self.residual_for_upscale)
-                
+
+                # calm down moving and calling subprocess
+                time.sleep(0.1)
