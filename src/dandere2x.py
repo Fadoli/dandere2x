@@ -43,9 +43,9 @@ from wrappers.upscalers.waifu2x_caffe import Waifu2xCaffe
 from dandere2xlib.realtime_encoding import run_realtime_encoding
 from dandere2xlib.frame_compressor import compress_frames
 from dandere2xlib.core.residual import residual_loop
-from dandere2xlib.minimal_disk import ProgressiveFramesExtractor
+from wrappers.cv2.cv2 import ProgressiveFramesExtractorCV2
 from dandere2xlib.core.merge import merge_loop
-from wrappers.ffmpeg.ffmpeg import extract_frames, trim_video
+from wrappers.ffmpeg.ffmpeg import extract_frames, trim_video, apply_dandere2x_core_filters, count_frames
 from wrappers.dandere2x_cpp import Dandere2xCppWrapper
 from dandere2xlib.status import print_status
 
@@ -86,14 +86,13 @@ class Dandere2x:
         - calls a series of threads for dandere2x_python to work
           (residuals, merging, waifu2x, dandere2xcpp, realtime-encoding)
         """
+        
+        # TODO: check every setting valid? any waifu2x client configured?
 
-        # # LOAD CONTEXT # #
+
+        # # LOAD CONTEXT STUFF # #
         
         output_file = self.context.output_file
-
-        ############
-        # PRE REQS #
-        ############
 
         # The first thing to do is create the dirs we will need during runtime
         create_directories(self.context.directories)
@@ -112,39 +111,38 @@ class Dandere2x:
         if not valid_input_resolution(self.context.width, self.context.height, self.context.block_size):
             self.append_video_resize_filter()
 
-        # TODO: check every setting valid? any waifu2x client configured?
-
         # Extract all the frames from source video
-        if self.context.minimal_disk_processing:
-            # minimal-disk we only write from N to N + MaxAhead frames "simultaneously"
 
-            max_frames_ahead = self.context.max_frames_ahead
+        if self.context.minimal_disk_processing:
+
+            # minimal-disk we only write from (N) to (N + max_frames_ahead) frames "simultaneously" in batches
 
             print("\n    WARNING: EXPERIMENTAL PFE ENABLED!!")
-            print("  Max frames ahead var:", max_frames_ahead)
+            
+            # count frames
+            self.context.frame_count = count_frames(self.context)
+            
+            # apply d2x core filters and change input to the noisy video file
+            self.context.input_file = apply_dandere2x_core_filters(self.context)
 
-            self.PFE = ProgressiveFramesExtractor(self.context) # PFE obj
-
-            #self.PFE.load() # load the video file # only if using cv2
-
-            self.context.frame_count = self.PFE.count_frames() # set context frame count
-            self.context.input_file = self.PFE.ffmpeg_filters_workaround() # FFMPEG NOT WORKING EXTRACTING FRAMES WORKAROUND (USES CV2)
+            # PFE obj
+            self.PFE = ProgressiveFramesExtractorCV2(self.context)
 
             # write frames_ahead frames
-
-            for _ in range(max_frames_ahead):
+            for _ in range(self.context.max_frames_ahead):
                 self.PFE.next_frame()
                 
         else:
-            self.PFE = None # PFE defaults to none to merge.py not use it
+            self.PFE = None # PFE defaults None for merge.py to not use it if it's not set
 
             print("\n  Extracting the frames from source video.. this might take a while..")
+            
             extract_frames(self.context, self.context.input_file)
             self.context.update_frame_count()
 
+
         # Assign the waifu2x object to whatever waifu2x we're using
-        self.waifu2x = self.get_waifu2x_class(self.context.waifu2x_type, self)
-        self.stop_upscaler = False
+        self.waifu2x = self.get_waifu2x_class(self.context.waifu2x_type)
 
         # Upscale the first file (the genesis file is treated different in Dandere2x)
         print("\n  Upscaling the first frame.. We literally cannot continue if it doesn't")
@@ -174,37 +172,40 @@ class Dandere2x:
         # the daemon=True is for quitting the process when the main thread quits
         # KeyboardInterrupt to be short
 
-        # must not change this order or will mess up with stats thread
-        # perhaps use a dictionary to store the threads by name?
-
         # daemon=True for them to close when this main thread closes
 
-        self.jobs = []
+        self.jobs = {}
 
-        self.jobs.append(threading.Thread(target=compress_frames, args=(self.context,), daemon=True)) # compress_frames_thread
-        self.jobs.append(Dandere2xCppWrapper(self.context)) # dandere2xcpp_thread
-        self.jobs.append(threading.Thread(target=merge_loop, args=(self.context, self, self.PFE), daemon=True)) # merge_thread
-        self.jobs.append(threading.Thread(target=residual_loop, args=(self.context,), daemon=True)) # residual_thread
-        self.jobs.append(threading.Thread(target=print_status, args=(self.context, self), daemon=True)) # status_thread
+        self.jobs['compress_frames_thread'] = threading.Thread(target=compress_frames, args=(self.context,), daemon=True)
+        self.jobs['dandere2xcpp_thread'] = Dandere2xCppWrapper(self.context) 
+        self.jobs['merge_thread'] = threading.Thread(target=merge_loop, args=(self.context, self, self.PFE), daemon=True)
+        self.jobs['residual_thread'] = threading.Thread(target=residual_loop, args=(self.context,), daemon=True)
+        self.jobs['waifu2x_thread'] = self.waifu2x
+
+        # "optional"
+        if self.context.status:
+            self.jobs['status_thread'] = threading.Thread(target=print_status, args=(self.context, self), daemon=True)
 
         if self.context.realtime_encoding_enabled:
-            self.jobs.append(multiprocessing.Process(target=run_realtime_encoding, args=(self.context, output_file), daemon=True)) # realtime_encode_thread
+            self.jobs['realtime_encode_thread'] = threading.Thread(target=run_realtime_encoding, args=(self.context, output_file), daemon=True)
 
-        logging.info("starting new d2x process")
-
-        self.waifu2x.start()
+        # start and join the jobs
+        for job in self.jobs:
+            self.jobs[job].start()
+            logging.info("Starting new %s process" % job)
 
         for job in self.jobs:
-            job.start()
+            
+            self.jobs[job].join()
+            
+            if job == "merge_thread": # close w2x
+                self.context.upscaler_running = False
+            
+            logging.info("%s process thread joined" % job)
 
-        for job in self.jobs:
-            job.join()
+        self.context.logger.info("All threaded processes have finished")
 
-        self.waifu2x.join()
-
-        self.context.logger.info("Threaded Processes Finished succcesfully")
-
-    def get_waifu2x_class(self, name: str, this_file_object):
+    def get_waifu2x_class(self, name: str):
 
         if name == "caffe":
             return Waifu2xCaffe(self.context)
@@ -213,7 +214,7 @@ class Dandere2x:
             return Waifu2xConverterCpp(self.context)
 
         elif name == "vulkan":
-            return Waifu2xVulkan(self.context, this_file_object)
+            return Waifu2xVulkan(self.context)
 
         elif name == "vulkan_legacy":
             return Waifu2xVulkanLegacy(self.context)

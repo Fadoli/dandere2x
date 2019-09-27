@@ -7,6 +7,7 @@ Last Modified: April 2, 2019
 
 from sys import platform
 
+import threading
 import logging
 import shutil
 import json
@@ -22,11 +23,6 @@ def get_operating_system():
         return 'linux'
     elif platform == "win32":
         return 'win32'
-
-    # potential fail safe for MAC?
-    # I mean, it's POSIX compliant so it should just
-    # work with the linux config file with a valid waifu2x client?
-    # can help Solaris and BSD as well?
     else: 
         if os.name == "posix":
             return 'linux'
@@ -242,6 +238,60 @@ def delete_directories(directories_list: list):
             print("Deletion of the directory %s failed" % subdirectory)
         else:
             print("Successfully deleted the directory %s " % subdirectory)
+
+
+def delete_used_files(context, ind): # for 
+    """
+    Delete the "already used" files (always index_to_remove behind)
+
+    This way we clean the workspace as we're moving on with the encode
+
+    The heart of minimal disk mode
+    """
+
+    # get the files to delete "_r(emove)"
+
+    index_to_remove = str(ind - 2)
+
+    prediction_data_file_r = context.pframe_data_dir + "pframe_" + index_to_remove + ".txt"
+    residual_data_file_r = context.residual_data_dir + "residual_" + index_to_remove + ".txt"
+    correction_data_file_r = context.correction_data_dir + "correction_" + index_to_remove + ".txt"
+    fade_data_file_r = context.fade_data_dir + "fade_" + index_to_remove + ".txt"
+
+    input_image_r = context.input_frames_dir + "frame" + index_to_remove + ".jpg"
+    
+    compressed_file_static_r = context.compressed_static_dir + "compressed_" + index_to_remove + ".jpg"
+    compressed_file_moving_r = context.compressed_moving_dir + "compressed_" + index_to_remove + ".jpg"
+    
+    # "mark" them
+    remove = [prediction_data_file_r, residual_data_file_r, correction_data_file_r,
+                fade_data_file_r, input_image_r, #upscaled_file_r,
+                compressed_file_static_r, compressed_file_moving_r]
+
+    if context.waifu2x_type == "vulkan":
+        upscaled_file_r = context.residual_upscaled_dir + "output_" + get_lexicon_value(6, int(ind)) + ".png"
+        remove.append(upscaled_file_r)
+
+    # remove
+    threading.Thread(target=remove_unused_list, args=(remove,), daemon=True).start()
+
+
+def remove_unused_list(files):
+    for item in files:
+        c = 0
+        while True:
+            if os.path.isfile(item):
+                try:
+                    os.remove(item)
+                    break
+                except OSError:
+                    c += 1
+            else:
+                c += 1
+            if c == 20:
+                break
+            time.sleep(0.1)
+
 
 
 def get_a_valid_input_resolution(width: int, height: int, block_size: int):

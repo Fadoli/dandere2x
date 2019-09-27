@@ -51,7 +51,7 @@ def watch_frame():
     every_runs = [0.00001] # low value to don't get division by zero
 
     
-    # Not sure why but "-1" is necessary for ffmpeg_pipe_encoding to work properly
+    # Not sure why but "-1" is necessary for ffmpeg_pipe_images to work properly
     
     # makes sense tho, say we got a 1 frame video, range(2,0) returns nothing 
     # (only one frame, the first that gets upscaled when d2x starts running)
@@ -80,7 +80,7 @@ def watch_frame():
 
         start = time.time()
 
-        if context.ffmpeg_pipe_encoding:
+        if context.ffmpeg_pipe_images:
             wait_on_file(upscaled_file, log=False)
         else:
             wait_on_either_file(merged_file, upscaled_file, log=False)
@@ -110,18 +110,17 @@ def print_status(ctx: Context, d2x_main):
 
         minimal_disk_processing = yes if context.minimal_disk_processing else no
 
-        ffmpeg_pipe_encoding = yes if context.ffmpeg_pipe_encoding else no
+        ffmpeg_pipe_images = yes if context.ffmpeg_pipe_images else no
         
-        ffmpeg_pipe_encoding_type = context.ffmpeg_pipe_encoding_type if context.ffmpeg_pipe_encoding else "-"
+        ffmpeg_pipe_images_type = context.ffmpeg_pipe_images_type if context.ffmpeg_pipe_images else "-"
 
-        #                     merge thread
-        while WF.isAlive() or d2x_main.jobs[2].is_alive():
-
-            waifu2xthread = running if d2x_main.waifu2x.is_alive() else finished
-            compress = running if d2x_main.jobs[0].is_alive() else finished
-            dandere2xcpp_thread = running if d2x_main.jobs[1].is_alive() else finished
-            merge_thread = running if d2x_main.jobs[2].is_alive() else finished
-            residual_thread = running if d2x_main.jobs[3].is_alive() else finished
+        while WF.isAlive() or d2x_main.jobs['merge_thread'].is_alive():            
+            dandere2xcpp_thread = running if d2x_main.jobs['dandere2xcpp_thread'].is_alive() else finished
+            compress = running if d2x_main.jobs['compress_frames_thread'].is_alive() else finished
+            residual_thread = running if d2x_main.jobs['residual_thread'].is_alive() else finished
+            waifu2xthread = running if d2x_main.jobs['waifu2x_thread'].is_alive() else finished        
+            merge_thread = running if d2x_main.jobs['merge_thread'].is_alive() else finished
+            
 
             module_header = """
       [ # ] Dandere2x Work in Progress Status CLI [ # ]
@@ -174,7 +173,7 @@ def print_status(ctx: Context, d2x_main):
       Experimental/FFmpeg pipe encode: [{}]    Type: [{}]
       Experimental/Minimal disk mode:  [{}]
 
-""".format(ffmpeg_pipe_encoding, ffmpeg_pipe_encoding_type,
+""".format(ffmpeg_pipe_images, ffmpeg_pipe_images_type,
            minimal_disk_processing)
 
     
@@ -197,7 +196,7 @@ def print_status(ctx: Context, d2x_main):
 
             clearscreen.clear()
             print(statement, end='\r')
-            time.sleep(4)
+            time.sleep(2)
 
 
-        #print("\n\n Finishing up Dandere2x stuff like migrating audio track, finishing encoding if ffmpeg_pipe_encoding is enabled / final concatenation if not.\n")
+        #print("\n\n Finishing up Dandere2x stuff like migrating audio track, finishing encoding if ffmpeg_pipe_images is enabled / final concatenation if not.\n")

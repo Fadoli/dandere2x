@@ -68,6 +68,8 @@ class Context:
         if "waifu2x_caffe" in self.config_file:
             self.waifu2x_caffe_cui_dir = self.config_file['waifu2x_caffe']['waifu2x_caffe_path']
 
+        self.upscaler_running = True # to control when an upscaler wrapper will stop
+
         # # # # # # #
 
         self.workspace = self.config_file['dandere2x']['developer_settings']['workspace']
@@ -131,6 +133,7 @@ class Context:
         self.scale_factor = self.config_file['dandere2x']['usersettings']['scale_factor']
         self.input_file = self.config_file['dandere2x']['usersettings']['input_file']
         self.output_file = self.config_file['dandere2x']['usersettings']['output_file']
+        self.nosound_file = os.path.join(self.workspace, "nosound")
 
         # Developer Settings
         self.quality_moving_ratio = self.config_file['dandere2x']['developer_settings']['quality_moving_ratio']
@@ -147,20 +150,17 @@ class Context:
         self.max_frames_ahead = self.config_file['dandere2x']['developer_settings']['max_frames_ahead']
 
         # FFMPEG Pipe Encoding, NOTE: THIS OVERRIDES REALTIME ENCODING
-        self.ffmpeg_pipe_encoding = self.config_file['dandere2x']['developer_settings']['ffmpeg_pipe_encoding']
-        self.ffmpeg_pipe_encoding_type = self.config_file['dandere2x']['developer_settings']['ffmpeg_pipe_encoding_type']
+        self.ffmpeg_pipe_images = self.config_file['dandere2x']['developer_settings']['ffmpeg_pipe_images']
+        self.ffmpeg_pipe_encoding_codec = self.config_file['dandere2x']['developer_settings']['ffmpeg_pipe_encoding_codec']
         
-        self.nosound_file = os.path.join(self.workspace, "nosound") # missing an extension, will set it in a few
-
 
         if self.minimal_disk_processing:
             # makes no sense talking about minimal
             # disk usage without piping
-            #self.ffmpeg_pipe_encoding = True
-            pass
+            self.ffmpeg_pipe_images = True
             
 
-        if self.ffmpeg_pipe_encoding:
+        if self.ffmpeg_pipe_images:
             # disable traditional "RTE" because we're piping
             self.realtime_encoding_enabled = False
             
@@ -183,7 +183,7 @@ class Context:
             self.realtime_encoding_seconds_per_video = \
             self.config_file['dandere2x']['developer_settings']['realtime_encoding']['realtime_encoding_seconds_per_video']
 
-
+        self.noisy_video = self.workspace + "noisy" + self.output_file_ext
 
 
         ##################

@@ -17,7 +17,7 @@ class Waifu2xVulkan(threading.Thread):
     The waifu2x-vulkan wrapper, with custom functions written that are specific for dandere2x to work.
     """
 
-    def __init__(self, context: Context, d2x_main):
+    def __init__(self, context: Context):
         # load context
         self.frame_count = context.frame_count
         self.waifu2x_ncnn_vulkan_file_path = context.waifu2x_ncnn_vulkan_file_path
@@ -45,8 +45,6 @@ class Waifu2xVulkan(threading.Thread):
             self.waifu2x_vulkan_upscale_frame.append(element)
 
         self.waifu2x_vulkan_upscale_frame.extend(["-o", "[output_file]"])
-
-        self.d2x_main = d2x_main
 
         threading.Thread.__init__(self)
         logging.basicConfig(filename=self.workspace + 'waifu2x.log', level=logging.INFO)
@@ -80,26 +78,36 @@ class Waifu2xVulkan(threading.Thread):
     def run(self):
         """
         Input:
-            - Files made by residuals.py appearing in the /residual_images/ folder.
+            - Files made by residuals.py appearing in the folder
+              ./dandere2x/src/workspace/$workspace_name/processing/residual_images/*.(context.extension_type)
 
         Output:
-            - Files upscaled in /residual_upscaled/
+            - Files upscaled in
+              ./dandere2x/src/workspace/$workspace_name/processing/residual_upscaled/*.png
 
         Code Description:
 
-        The current Dandere2x implementation requires files to be removed from the 'residual_images' folder
-        during runtime. When waifu2x-ncnn-vulkan calls 'upscale folder', it will only upscale what's in the folder
-        at that moment, and it'll re-upscale the images that it already upscaled in a previous iteration.
+        The current Dandere2x implementation requires files to be moved from the 'residual_images' folder to
+        residual_for_upscale so when waifu2x-ncnn-vulkan calls 'upscale folder', it will only upscale what's in the folder
+        at that moment ('residual_for_upscale') and shortly after the job is done, it'll delete the contents of
+        residual_for_upscale directory so that no re-upscaling already upscaled files compute power is wasted.
 
-        Considering that residual_images produced by Dandere2x don't all exist during the initial
-        Waifu2x call, we need to call the 'upscale folder' command multiple times. To prevent waifu2x from re-upscaling
-        the same image twice, various work arounds are in place to allow Dandere2x and Waifu2x to work in real time.
+        This process is called virtually infinite times in minimal-disk mode since works in batches of images,
+        traditional methods hardly get called more than a couple of times since Waifu2x usually is miles
+        behind the Dandere2x C++ script in upscaling the current residual images. That's because the buffer in
+        residual_images since C++ is way ahead will be big, really big.
 
-        Briefly, 1) Create a list of names that will be upscaled by waifu2x,
-                 2) Call waifu2x to upscale whatever images are in 'differences' folder
-                 3) After waifu2x call is finished, delete whatever files were upscaled, and remove those names from list.
+        Briefly, 1) Move every 'residual_image' to 'residual_to_upscale'
+
+                 2) Call waifu2x to upscale whatever images are in 'residual_to_upscale' folder
+
+                 3) After waifu2x call is finished, delete whatever files were just upscaled 
+                   (all the contents of 'residual_to_upscale')
                    (this is to prevent Waifu2x from re-upscaling the same image again)
-                 4) Repeat this process until all the names are removed.
+
+                 4) Repeat this process until merge.py broadcasts that its job had finished.
+                   (close w2x when all frames were 'merged')
+                   (done via context.upscaler_running object variable)
         """
 
         logger = logging.getLogger(__name__)
@@ -122,17 +130,16 @@ class Waifu2xVulkan(threading.Thread):
             logger.info("waifu2x_vulkan session")
             logger.info(exec_command)
 
-            while not self.d2x_main.stop_upscaler:
+            while self.context.upscaler_running:
                 
                 # don't mix up already upscaled/pending residual files
                 move_files_dir(self.residual_images_dir, self.residual_for_upscale)
 
-                # if there's at least a bit of files to process in current "batch"
-                # this worked some times but was pretty unstable, commenting
-                #if len(os.listdir(self.residual_for_upscale)) + len(os.listdir(self.residual_upscaled_dir)) >= self.max_frames_ahead/2:
+                # upscale stuff moved to residual_for_upscale
                 subprocess.call(exec_command, shell=False, stderr=console_output, stdout=console_output)
 
+                # delete residual_for_upscale for not re-upscaling in the future
                 delete_dir_contents(self.residual_for_upscale)
 
-                # calm down moving and calling subprocess
+                # calm down moving and calling subprocess!
                 time.sleep(0.1)
