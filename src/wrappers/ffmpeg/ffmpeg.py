@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 import logging
 import subprocess
-import os
 
 from context import Context
-from dandere2xlib.utils.json_utils import get_options_from_section
+from dandere2xlib.utils.yaml_utils import get_options_from_section
 
 
 def trim_video(context: Context, output_file: str):
@@ -20,13 +19,13 @@ def trim_video(context: Context, output_file: str):
                           "-hwaccel", context.hwaccel,
                           "-i", input_file]
 
-    trim_video_time = get_options_from_section(context.config_json["ffmpeg"]["trim_video"]["time"])
+    trim_video_time = get_options_from_section(context.config_yaml["ffmpeg"]["trim_video"]["time"])
 
     for element in trim_video_time:
         trim_video_command.append(element)
 
     trim_video_options = \
-        get_options_from_section(context.config_json["ffmpeg"]["trim_video"]["output_options"], ffmpeg_command=True)
+        get_options_from_section(context.config_yaml["ffmpeg"]["trim_video"]["output_options"], ffmpeg_command=True)
 
     for element in trim_video_options:
         trim_video_command.append(element)
@@ -53,7 +52,7 @@ def extract_frames(context: Context, input_file: str):
                               "-i", input_file]
 
     extract_frames_options = \
-        get_options_from_section(context.config_json["ffmpeg"]["video_to_frames"]['output_options'],
+        get_options_from_section(context.config_yaml["ffmpeg"]["video_to_frames"]['output_options'],
                                  ffmpeg_command=True)
 
     for element in extract_frames_options:
@@ -69,6 +68,34 @@ def extract_frames(context: Context, input_file: str):
     console_output = open(context.log_dir + "ffmpeg_extract_frames_console.txt", "w")
     console_output.write(str(extract_frames_command))
     subprocess.call(extract_frames_command, shell=False, stderr=console_output, stdout=console_output)
+
+
+def create_video_from_extract_frames(context: Context, output_file: str):
+    """
+    Create a new video by applying the filters that d2x needs to work into it's own seperate video.
+    """
+    input_file = context.input_file
+    logger = logging.getLogger(__name__)
+
+    command = [context.ffmpeg_dir,
+                              "-hwaccel", context.hwaccel,
+                              "-i", input_file]
+
+    extract_frames_options = \
+        get_options_from_section(context.config_yaml["ffmpeg"]["video_to_frames"]['output_options'],
+                                 ffmpeg_command=True)
+
+    for element in extract_frames_options:
+        command.append(element)
+
+    command.extend([output_file])
+
+    logger.info("Applying filter to video...")
+
+    console_output = open(context.log_dir + "ffmpeg_create_video_from_extract_frame_filters.txt", "w")
+    console_output.write(str(command))
+    subprocess.call(command, shell=False, stderr=console_output, stdout=console_output)
+
 
 def concat_encoded_vids(context: Context, output_file: str):
     """
@@ -88,7 +115,7 @@ def concat_encoded_vids(context: Context, output_file: str):
                              "-i", text_file]
 
     concat_videos_option = \
-        get_options_from_section(context.config_json["ffmpeg"]["concat_videos"]['output_options'], ffmpeg_command=True)
+        get_options_from_section(context.config_yaml["ffmpeg"]["concat_videos"]['output_options'], ffmpeg_command=True)
 
     for element in concat_videos_option:
         concat_videos_command.append(element)
@@ -113,7 +140,7 @@ def migrate_tracks(context: Context, no_audio: str, file_dir: str, output_file: 
                               "-map", "-1:v?"]
 
     migrate_tracks_options = \
-        get_options_from_section(context.config_json["ffmpeg"]["migrating_tracks"]['output_options'],
+        get_options_from_section(context.config_yaml["ffmpeg"]["migrating_tracks"]['output_options'],
                                  ffmpeg_command=True)
 
     for element in migrate_tracks_options:
@@ -124,6 +151,7 @@ def migrate_tracks(context: Context, no_audio: str, file_dir: str, output_file: 
     console_output = open(context.log_dir + "migrate_tracks_command.txt", "w")
     console_output.write(str(migrate_tracks_command))
     subprocess.call(migrate_tracks_command, shell=False, stderr=console_output, stdout=console_output)
+
 
 def create_video_from_specific_frames(context: Context, file_prefix, output_file, start_number, frames_per_video):
     """
@@ -144,7 +172,7 @@ def create_video_from_specific_frames(context: Context, file_prefix, output_file
                                  "-vframes", str(frames_per_video),
                                  "-r", str(context.frame_rate)]
 
-    frame_to_video_option = get_options_from_section(context.config_json["ffmpeg"]["frames_to_video"]['output_options']
+    frame_to_video_option = get_options_from_section(context.config_yaml["ffmpeg"]["frames_to_video"]['output_options']
                                                      , ffmpeg_command=True)
 
     for element in frame_to_video_option:

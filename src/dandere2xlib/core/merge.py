@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import logging
-import os
+import subprocess
+
+from PIL import Image
 
 from context import Context
 from dandere2xlib.core.plugins.correction import correct_image
 from dandere2xlib.core.plugins.fade import fade_image
 from dandere2xlib.core.plugins.pframe import pframe_image
-from dandere2xlib.utils.dandere2x_utils import get_lexicon_value, get_list_from_file, wait_on_file
+from dandere2xlib.utils.dandere2x_utils import get_lexicon_value, get_list_from_file, wait_on_file, file_exists
+from wrappers.ffmpeg.ffmpeg import migrate_tracks
 from wrappers.frame.asyncframe import AsyncFrameWrite, AsyncFrameRead
 from wrappers.frame.frame import Frame
+from dandere2xlib.utils.yaml_utils import get_options_from_section
+from wrappers.ffmpeg.pipe import Pipe
 
 
 def merge_loop(context: Context):
@@ -38,7 +43,14 @@ def merge_loop(context: Context):
     fade_data_dir = context.fade_data_dir
     frame_count = context.frame_count
     extension_type = context.extension_type
+    nosound_file = context.nosound_file
     logger = logging.getLogger(__name__)
+
+    # # #  # # #  # # #  # # #
+
+    # create the pipe that Dandere2x will use to store the outputs of the video.
+    pipe = Pipe(context, nosound_file)
+    pipe.start_pipe_thread()
 
     # Load the genesis image + the first upscaled image.
     frame_previous = Frame()
@@ -47,10 +59,13 @@ def merge_loop(context: Context):
     f1 = Frame()
     f1.load_from_string_wait(upscaled_dir + "output_" + get_lexicon_value(6, 1) + ".png")
 
+    pipe.save(frame_previous)
+
     # When upscaling every frame between start_frame to frame_count, there's obviously no x + 1 at frame_count - 1 .
     # So just make a small note not to load that image. Pretty much load images concurrently until we get to x - 1
     last_frame = False
     for x in range(1, frame_count):
+
         ###################################
         # Loop-iteration pre-requirements #
         ###################################
@@ -75,21 +90,21 @@ def merge_loop(context: Context):
         correction_data_list = get_list_from_file(correction_data_dir + "correction_" + str(x) + ".txt")
         fade_data_list = get_list_from_file(fade_data_dir + "fade_" + str(x) + ".txt")
 
-        output_file = workspace + "merged/merged_" + str(x + 1) + extension_type
-
         frame_next = make_merge_image(context, f1, frame_previous,
-                                    prediction_data_list, residual_data_list, correction_data_list, fade_data_list)
+                                      prediction_data_list, residual_data_list,
+                                      correction_data_list, fade_data_list)
 
-        # Write the image in the background for the preformance increase
-        background_frame_write = AsyncFrameWrite(frame_next, output_file)
-        background_frame_write.start()
+        pipe.save(frame_next)
+
+        if context.preserve_frames:
+            output_file = workspace + "merged/merged_" + str(x + 1) + extension_type
+            background_frame_write = AsyncFrameWrite(frame_next, output_file)
+            background_frame_write.start()
 
         #######################################
         # Assign variables for next iteration #
         #######################################
 
-        # Ensure the file is loaded for background_frame_load. If we're on the last frame, simply ignore this section
-        # Because the frame_count + 1 does not exist.
         if not last_frame:
             while not background_frame_load.load_complete:
                 wait_on_file(upscaled_dir + "output_" + get_lexicon_value(6, x + 1) + ".png")
@@ -97,6 +112,21 @@ def merge_loop(context: Context):
             f1 = background_frame_load.loaded_image
 
         frame_previous = frame_next
+        context.signal_merged_count = x
+
+        # Ensure the file is loaded for background_frame_load. If we're on the last frame, simply ignore this section
+        # Because the frame_count + 1 does not exist.
+
+    pipe.wait_finish_stop_pipe()
+
+    logger.info("Migrating audio tracks from the original video..")
+
+    while not file_exists(context.output_file):
+        # add the original file audio to the nosound file
+        migrate_tracks(context, context.nosound_file,
+                       context.input_file, context.output_file)
+
+    logger.info("Finished migrating tracks.")
 
 
 def make_merge_image(context: Context, frame_residual: Frame, frame_previous: Frame,
@@ -129,8 +159,8 @@ def make_merge_image(context: Context, frame_residual: Frame, frame_previous: Fr
         out_image.copy_image(frame_residual)
         return out_image
 
-    # by copying the image first as the first step, all the predictive elements like
-    # (0,0) -> (0,0) are also coppied
+    # by copying the image first as the first step, all the predictive
+    # elements of the form (x,y) -> (x,y) are also copied
     out_image.copy_image(frame_previous)
 
     # run the image through the same plugins IN ORDER it was ran in d2x_cpp
