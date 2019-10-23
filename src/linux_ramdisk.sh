@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # this scripts sets up an 256 MB tmpfs "ramdisk" in Linux
 # for dandere2x usage. please, if you're going to
 # use this, set the workspace on danere2x_linux.yaml
